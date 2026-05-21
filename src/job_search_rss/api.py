@@ -7,6 +7,12 @@ from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.history import JobChange, JobChangeType
 from job_search_rss.domain.job import Job
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
+from job_search_rss.infrastructure.database import (
+    SqlAlchemyRepository,
+    create_schema,
+    create_sqlite_engine,
+)
+from job_search_rss.infrastructure.settings import Settings
 from job_search_rss.rss.renderer import XmlRssRenderer
 from job_search_rss.usecase.generate_rss_feed import GenerateRssFeed
 from job_search_rss.usecase.query_job_changes_for_rss import RssChangeQuery
@@ -94,6 +100,13 @@ def create_app(*, repository: SubscriptionRepository) -> FastAPI:
         methods=["GET"],
     )
     return app
+
+
+def create_app_from_settings(settings: Settings) -> FastAPI:
+    settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+    engine = create_sqlite_engine(f"sqlite:///{settings.db_path.as_posix()}")
+    create_schema(engine)
+    return create_app(repository=SqlAlchemyRepository(engine))
 
 
 def _subscription_condition_from_request(request: SubscriptionRequest) -> SubscriptionCondition:
