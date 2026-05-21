@@ -78,15 +78,15 @@
 | [x] | 6.10 | 失敗時制御実装 | 失敗を実行履歴として保存し、求人状態を過剰に変更しないようにする | Failure handling |
 | [x] | 6.11 | 条件別スナップショット更新実装 | 正常収集時に、どの条件で求人が見えていたかを保存・更新する | Condition snapshot update |
 | [x] | 6.12 | 受け入れテスト部分通過 | fake収集結果から変更履歴保存まで、薄い縦断テストを通す | 部分通過した受け入れテスト |
-| [ ] | 7 | RSS抽出・生成をTDDで実装 | 保存済み変更履歴だけからRSS XMLを作る | RSSユースケース |
-| [ ] | 7.1 | RSSフィルタテスト作成 | 地域、職種、変更種別、購読条件で変更履歴を抽出できることをテスト化する | RSS filterテスト |
-| [ ] | 7.2 | RSS変更履歴抽出実装 | 条件に一致する変更履歴の抽出を実装する | QueryJobChangesForRss |
-| [ ] | 7.3 | RSS項目テスト作成 | title、link、description、guid、pubDate、変更種別、地域、職種の出力期待をテスト化する | RSS itemテスト |
-| [ ] | 7.4 | RSSレンダラー実装 | 変更履歴をRSS XMLへ変換する | RssRenderer |
-| [ ] | 7.5 | RSS外部アクセス分離テスト作成 | RSS生成時にSiteAdapterやHTTPクライアントが呼ばれないことをテスト化する | RSS boundaryテスト |
-| [ ] | 7.6 | RSS生成ユースケース実装 | 保存済み変更履歴のみを使ってRSS XMLを生成する | GenerateRssFeed |
-| [ ] | 7.7 | 受け入れテスト初回通過 | fake実装で条件登録、収集、差分保存、RSS生成までを通す | 通過した薄い受け入れテスト |
-| [ ] | 7.8 | RSS XMLリファクタリング | XML構造、文字コード、guid生成、description整形を整理する | RSS rendererリファクタリング |
+| [x] | 7 | RSS抽出・生成をTDDで実装 | 保存済み変更履歴だけからRSS XMLを作る | RSSユースケース |
+| [x] | 7.1 | RSSフィルタテスト作成 | 地域、職種、変更種別、購読条件で変更履歴を抽出できることをテスト化する | RSS filterテスト |
+| [x] | 7.2 | RSS変更履歴抽出実装 | 条件に一致する変更履歴の抽出を実装する | QueryJobChangesForRss |
+| [x] | 7.3 | RSS項目テスト作成 | title、link、description、guid、pubDate、変更種別、地域、職種の出力期待をテスト化する | RSS itemテスト |
+| [x] | 7.4 | RSSレンダラー実装 | 変更履歴をRSS XMLへ変換する | RssRenderer |
+| [x] | 7.5 | RSS外部アクセス分離テスト作成 | RSS生成時にSiteAdapterやHTTPクライアントが呼ばれないことをテスト化する | RSS boundaryテスト |
+| [x] | 7.6 | RSS生成ユースケース実装 | 保存済み変更履歴のみを使ってRSS XMLを生成する | GenerateRssFeed |
+| [x] | 7.7 | 受け入れテスト初回通過 | fake実装で条件登録、収集、差分保存、RSS生成までを通す | 通過した薄い受け入れテスト |
+| [x] | 7.8 | RSS XMLリファクタリング | XML構造、文字コード、guid生成、description整形を整理する | RSS rendererリファクタリング |
 | [ ] | 8 | atGPアダプタをTDDで実装 | 保存HTMLや小さなfixtureを使い、サイト固有処理を外側に閉じ込める | atGPアダプタ |
 | [ ] | 8.1 | atGP仕様調査 | 検索パラメータ、地域マスター、職種マスター、一覧HTML、詳細HTML、求人ID取得方法を確認する | atGP仕様メモ |
 | [ ] | 8.2 | atGP fixture作成 | 地域マスター、職種マスター、検索結果一覧、求人詳細の保存HTMLと期待する共通モデルを用意する | HTML fixture、期待データ |
