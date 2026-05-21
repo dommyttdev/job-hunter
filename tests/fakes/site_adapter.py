@@ -54,6 +54,15 @@ class FakeSiteAdapter:
         self._domain_jobs_by_condition.setdefault(condition.normalized_key, []).append(job)
         self._domain_jobs_by_id[(job.site_id, job.job_id)] = job
 
+    def replace_jobs_for_condition(
+        self,
+        condition: CollectionCondition,
+        jobs: list[Job],
+    ) -> None:
+        self._domain_jobs_by_condition[condition.normalized_key] = list(jobs)
+        for job in jobs:
+            self._domain_jobs_by_id[(job.site_id, job.job_id)] = job
+
     def fetch_jobs_for_condition(self, condition: CollectionCondition) -> list[Job]:
         if self.raise_if_called:
             msg = "SiteAdapter must not be called"
