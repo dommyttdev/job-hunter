@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from html.parser import HTMLParser
+from typing import Protocol
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from job_search_rss.domain.collection_condition import CollectionCondition
@@ -9,6 +10,14 @@ from job_search_rss.domain.job import Job
 
 ATGP_SEARCH_URL = "https://www.atgp.jp/search/top/search_result"
 ATGP_BASE_URL = "https://www.atgp.jp"
+
+
+class PageClient(Protocol):
+    def get_text(self, url: str, *, timeout_seconds: float) -> str: ...
+
+
+class AtgpFetchError(RuntimeError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -22,6 +31,19 @@ class AtgpOccupationMaster:
     category_code: str
     type_codes: tuple[str, ...]
     occupation: Occupation
+
+
+class AtgpPageFetcher:
+    def __init__(self, client: PageClient, *, timeout_seconds: float = 10.0) -> None:
+        self._client = client
+        self._timeout_seconds = timeout_seconds
+
+    def fetch_page(self, url: str) -> str:
+        try:
+            return self._client.get_text(url, timeout_seconds=self._timeout_seconds)
+        except Exception as exc:
+            msg = f"Failed to fetch atGP page: {url}"
+            raise AtgpFetchError(msg) from exc
 
 
 def parse_region_master(html: str) -> list[AtgpRegionMaster]:
