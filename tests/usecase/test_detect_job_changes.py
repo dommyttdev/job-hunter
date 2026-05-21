@@ -81,6 +81,24 @@ def test_detect_job_changes_does_not_record_change_when_content_hash_is_same() -
     assert repository.list_job_changes() == []
 
 
+def test_detect_job_changes_does_not_duplicate_update_change_on_rerun() -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    condition = CollectionCondition(site_id="atgp", condition_key="region:tokyo")
+    existing_job = create_job(job_id="atgp-001", content_hash="hash-001")
+    updated_job = create_job(job_id="atgp-001", content_hash="hash-002")
+    repository.save_job(existing_job)
+    site_adapter.add_job_for_condition(condition, updated_job)
+    detect_changes = DetectJobChanges(repository, site_adapter, clock=fixed_clock)
+
+    first_changes = detect_changes.execute(condition)
+    second_changes = detect_changes.execute(condition)
+
+    assert len(first_changes) == 1
+    assert second_changes == []
+    assert len(repository.list_job_changes()) == 1
+
+
 def create_job(
     *,
     job_id: str,
