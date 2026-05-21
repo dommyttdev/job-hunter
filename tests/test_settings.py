@@ -1,9 +1,11 @@
 from pathlib import Path
 
+from pytest import MonkeyPatch
+
 from job_search_rss.infrastructure.settings import Settings, load_settings
 
 
-def test_load_settings_from_environment(monkeypatch) -> None:
+def test_load_settings_from_environment(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("JOB_SEARCH_RSS_DB_PATH", "var/test.sqlite3")
     monkeypatch.setenv("JOB_SEARCH_RSS_COLLECTION_INTERVAL_MINUTES", "15")
     monkeypatch.setenv("JOB_SEARCH_RSS_LOG_LEVEL", "DEBUG")
@@ -19,7 +21,7 @@ def test_load_settings_from_environment(monkeypatch) -> None:
     )
 
 
-def test_load_settings_uses_safe_defaults(monkeypatch) -> None:
+def test_load_settings_uses_safe_defaults(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.delenv("JOB_SEARCH_RSS_DB_PATH", raising=False)
     monkeypatch.delenv("JOB_SEARCH_RSS_COLLECTION_INTERVAL_MINUTES", raising=False)
     monkeypatch.delenv("JOB_SEARCH_RSS_LOG_LEVEL", raising=False)

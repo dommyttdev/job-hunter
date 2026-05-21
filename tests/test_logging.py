@@ -1,9 +1,12 @@
 import logging
+from typing import cast
+
+from pytest import LogCaptureFixture
 
 from job_search_rss.infrastructure.logging import log_event
 
 
-def test_log_event_records_structured_context(caplog) -> None:
+def test_log_event_records_structured_context(caplog: LogCaptureFixture) -> None:
     with caplog.at_level(logging.INFO):
         log_event(
             "collection_started",
@@ -12,12 +15,13 @@ def test_log_event_records_structured_context(caplog) -> None:
         )
 
     assert caplog.messages == ["collection_started"]
-    assert caplog.records[0].event == "collection_started"
-    assert caplog.records[0].condition_id == "condition-1"
-    assert caplog.records[0].site == "atgp"
+    record = caplog.records[0]
+    assert cast(str, record.__dict__["event"]) == "collection_started"
+    assert cast(str, record.__dict__["condition_id"]) == "condition-1"
+    assert cast(str, record.__dict__["site"]) == "atgp"
 
 
-def test_log_event_can_record_failure(caplog) -> None:
+def test_log_event_can_record_failure(caplog: LogCaptureFixture) -> None:
     with caplog.at_level(logging.ERROR):
         log_event(
             "collection_failed",
@@ -27,5 +31,6 @@ def test_log_event_can_record_failure(caplog) -> None:
         )
 
     assert caplog.messages == ["collection_failed"]
-    assert caplog.records[0].levelno == logging.ERROR
-    assert caplog.records[0].reason == "parse_error"
+    record = caplog.records[0]
+    assert record.levelno == logging.ERROR
+    assert cast(str, record.__dict__["reason"]) == "parse_error"

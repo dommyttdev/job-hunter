@@ -1,14 +1,14 @@
 from typing import Protocol
 
+JobChangeData = dict[str, str]
+
 
 class ChangeRepository(Protocol):
-    def list_changes_for_subscription(self, subscription_id: str) -> list[dict[str, str]]:
-        pass
+    def list_changes_for_subscription(self, subscription_id: str) -> list[JobChangeData]: ...
 
 
 class RssRenderer(Protocol):
-    def render(self, changes: list[dict[str, str]]) -> str:
-        pass
+    def render(self, changes: list[JobChangeData]) -> str: ...
 
 
 class GenerateRssFeed:

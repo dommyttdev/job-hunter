@@ -15,8 +15,7 @@ class SubscriptionRepository(Protocol):
         prefecture: str,
         occupation_category: str,
         occupation_detail: str,
-    ) -> Subscription:
-        pass
+    ) -> Subscription: ...
 
 
 class RegisterSubscriptionCondition:

@@ -1,6 +1,9 @@
+from tests.fakes.types import JobData
+
+
 class FakeSiteAdapter:
     def __init__(self) -> None:
-        self._jobs_by_condition: dict[str, list[dict[str, str]]] = {}
+        self._jobs_by_condition: dict[str, list[JobData]] = {}
         self.call_count = 0
         self.raise_if_called = False
 
@@ -20,7 +23,7 @@ class FakeSiteAdapter:
             }
         )
 
-    def fetch_jobs(self, condition_key: str) -> list[dict[str, str]]:
+    def fetch_jobs(self, condition_key: str) -> list[JobData]:
         if self.raise_if_called:
             msg = "SiteAdapter must not be called"
             raise AssertionError(msg)
