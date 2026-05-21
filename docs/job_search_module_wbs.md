@@ -50,14 +50,14 @@
 | [x] | 3.8 | 収集条件モデル実装 | 収集条件モデルを実装する | CollectionConditionモデル |
 | [x] | 3.9 | 求人変更・実行履歴モデルのテスト作成 | 新規、更新、削除、収集成功、収集失敗の状態表現をテスト化する | JobChange/CollectionRunテスト |
 | [x] | 3.10 | 求人変更・実行履歴モデル実装 | 変更履歴と収集実行履歴モデルを実装する | JobChange/CollectionRunモデル |
-| [ ] | 4 | ユースケースのポートとfakeをTDDで定義 | 受け入れテストを動かすために必要な抽象とfakeを最小限作る | ポート、fake実装 |
-| [ ] | 4.1 | fake Repositoryテスト作成 | 求人、変更履歴、条件、マスター、実行履歴をテスト内で保存・参照できることをテスト化する | fake Repositoryテスト |
-| [ ] | 4.2 | Repositoryポートとfake実装 | 必要最小限のRepositoryインターフェースとfakeを定義する | Repositoryポート、fake |
-| [ ] | 4.3 | fake SiteAdapterテスト作成 | マスター取得、求人一覧取得、詳細取得の決まった結果を返せることをテスト化する | fake SiteAdapterテスト |
-| [ ] | 4.4 | SiteAdapterポートとfake実装 | SiteAdapterインターフェースとfakeを定義する | SiteAdapterポート、fake |
-| [ ] | 4.5 | fake RssRendererテスト作成 | 変更履歴をRSS文字列へ変換するfakeをテスト化する | fake RssRendererテスト |
-| [ ] | 4.6 | RssRendererポートとfake実装 | RssRendererインターフェースとfakeを定義する | RssRendererポート、fake |
-| [ ] | 4.7 | 受け入れテストの初回接続 | ドメインモデル、ポート、fakeを接続し、まだ不足しているユースケースを明確にする | 失敗理由が明確な受け入れテスト |
+| [x] | 4 | ユースケースのポートとfakeをTDDで定義 | 受け入れテストを動かすために必要な抽象とfakeを最小限作る | ポート、fake実装 |
+| [x] | 4.1 | fake Repositoryテスト作成 | 求人、変更履歴、条件、マスター、実行履歴をテスト内で保存・参照できることをテスト化する | fake Repositoryテスト |
+| [x] | 4.2 | Repositoryポートとfake実装 | 必要最小限のRepositoryインターフェースとfakeを定義する | Repositoryポート、fake |
+| [x] | 4.3 | fake SiteAdapterテスト作成 | マスター取得、求人一覧取得、詳細取得の決まった結果を返せることをテスト化する | fake SiteAdapterテスト |
+| [x] | 4.4 | SiteAdapterポートとfake実装 | SiteAdapterインターフェースとfakeを定義する | SiteAdapterポート、fake |
+| [x] | 4.5 | fake RssRendererテスト作成 | 変更履歴をRSS文字列へ変換するfakeをテスト化する | fake RssRendererテスト |
+| [x] | 4.6 | RssRendererポートとfake実装 | RssRendererインターフェースとfakeを定義する | RssRendererポート、fake |
+| [x] | 4.7 | 受け入れテストの初回接続 | ドメインモデル、ポート、fakeを接続し、まだ不足しているユースケースを明確にする | 失敗理由が明確な受け入れテスト |
 | [ ] | 5 | 購読条件登録と収集条件導出をTDDで実装 | 利用者条件から重複しない収集条件を作る | 条件管理ユースケース |
 | [ ] | 5.1 | 購読条件登録テスト作成 | 地域、職種、地域と職種の組み合わせが登録できることをテスト化する | RegisterSubscriptionConditionテスト |
 | [ ] | 5.2 | 購読条件登録ユースケース実装 | 条件を正規化して保存する最小実装を行う | RegisterSubscriptionCondition |
