@@ -22,17 +22,22 @@ class DetectJobChanges:
     def execute(self, condition: CollectionCondition) -> list[JobChange]:
         started_at = self._clock()
         fetched_jobs = self._site_adapter.fetch_jobs_for_condition(condition)
-        existing_job_ids = {job.job_id for job in self._repository.list_jobs()}
+        existing_jobs_by_id = {job.job_id: job for job in self._repository.list_jobs()}
         changes: list[JobChange] = []
 
         for job in fetched_jobs:
             self._repository.save_job(job)
-            if job.job_id in existing_job_ids:
+            existing_job = existing_jobs_by_id.get(job.job_id)
+            if existing_job is None:
+                change_type = JobChangeType.NEW
+            elif existing_job.content_hash != job.content_hash:
+                change_type = JobChangeType.UPDATED
+            else:
                 continue
             change = JobChange(
                 job_id=job.job_id,
                 collection_condition_key=condition.normalized_key,
-                change_type=JobChangeType.NEW,
+                change_type=change_type,
                 content_hash=job.content_hash,
                 occurred_at=started_at,
             )

@@ -38,6 +38,29 @@ def test_detect_job_changes_records_new_job_change() -> None:
     assert repository.list_collection_runs()[0].collected_job_count == 1
 
 
+def test_detect_job_changes_records_updated_job_change_when_content_hash_changes() -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    condition = CollectionCondition(site_id="atgp", condition_key="region:tokyo")
+    existing_job = create_job(job_id="atgp-001", content_hash="hash-001")
+    updated_job = create_job(job_id="atgp-001", content_hash="hash-002")
+    repository.save_job(existing_job)
+    site_adapter.add_job_for_condition(condition, updated_job)
+
+    changes = DetectJobChanges(
+        repository,
+        site_adapter,
+        clock=fixed_clock,
+    ).execute(condition)
+
+    assert len(changes) == 1
+    assert changes[0].job_id == "atgp-001"
+    assert changes[0].change_type is JobChangeType.UPDATED
+    assert changes[0].content_hash == "hash-002"
+    assert repository.list_jobs() == [existing_job, updated_job]
+    assert repository.list_job_changes() == changes
+
+
 def create_job(
     *,
     job_id: str,
