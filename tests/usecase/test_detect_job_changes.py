@@ -4,7 +4,10 @@ from tests.fakes.repository import FakeRepository
 from tests.fakes.site_adapter import FakeSiteAdapter
 
 from job_search_rss.domain.collection_condition import CollectionCondition
-from job_search_rss.domain.history import CollectionRunStatus, JobChangeType
+from job_search_rss.domain.history import (
+    CollectionRunStatus,
+    JobChangeType,
+)
 from job_search_rss.domain.job import Job
 from job_search_rss.usecase.detect_job_changes import DetectJobChanges
 
@@ -122,6 +125,33 @@ def test_detect_job_changes_records_deleted_job_when_previous_snapshot_disappear
     assert changes[0].content_hash == "hash-001"
     assert repository.list_job_changes() == changes
     assert repository.list_job_ids_for_condition(condition.normalized_key) == []
+
+
+def test_detect_job_changes_records_failure_without_deleting_previous_snapshot() -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    condition = CollectionCondition(site_id="atgp", condition_key="region:tokyo")
+    existing_job = create_job(job_id="atgp-001", content_hash="hash-001")
+    repository.save_job(existing_job)
+    repository.save_condition_snapshot(
+        collection_condition_key=condition.normalized_key,
+        job_ids=["atgp-001"],
+    )
+    site_adapter.raise_if_called = True
+
+    changes = DetectJobChanges(
+        repository,
+        site_adapter,
+        clock=fixed_clock,
+    ).execute(condition)
+
+    assert changes == []
+    assert repository.list_job_changes() == []
+    assert repository.list_job_ids_for_condition(condition.normalized_key) == [
+        "atgp-001"
+    ]
+    assert repository.list_collection_runs()[0].status is CollectionRunStatus.FAILED
+    assert repository.list_collection_runs()[0].error_message == "SiteAdapter must not be called"
 
 
 def create_job(

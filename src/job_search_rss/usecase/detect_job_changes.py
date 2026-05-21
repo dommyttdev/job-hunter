@@ -21,7 +21,19 @@ class DetectJobChanges:
 
     def execute(self, condition: CollectionCondition) -> list[JobChange]:
         started_at = self._clock()
-        fetched_jobs = self._site_adapter.fetch_jobs_for_condition(condition)
+        try:
+            fetched_jobs = self._site_adapter.fetch_jobs_for_condition(condition)
+        except Exception as error:
+            finished_at = self._clock()
+            self._repository.save_collection_run(
+                CollectionRun.failed(
+                    collection_condition_key=condition.normalized_key,
+                    started_at=started_at,
+                    finished_at=finished_at,
+                    error_message=str(error),
+                )
+            )
+            return []
         existing_jobs_by_id = {job.job_id: job for job in self._repository.list_jobs()}
         fetched_job_ids = {job.job_id for job in fetched_jobs}
         previous_job_ids = set(
