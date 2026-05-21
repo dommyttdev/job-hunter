@@ -123,7 +123,7 @@
 | [x] | 10.4 | 正常収集判定実装 | 削除検知可否を判定する結果モデルと制御を実装する | Collection result判定 |
 | [x] | 10.5 | マスター同期テスト作成 | サイト別マスターを共通モデルへ正規化して保存できることをテスト化する | Master syncテスト |
 | [x] | 10.6 | マスター同期実装 | SyncSiteMasterユースケースを実装する | SyncSiteMaster |
-| [ ] | 10.7 | atGP fixture統合テスト作成 | atGP保存HTML fixture、SQLite Repository、RSS生成を一連で実行できることをテスト化する | atGP fixture E2Eテスト |
+| [x] | 10.7 | atGP fixture統合テスト作成 | atGP保存HTML fixture、SQLite Repository、RSS生成を一連で実行できることをテスト化する | atGP fixture E2Eテスト |
 | [ ] | 10.8 | atGP fixture統合実装調整 | DI、ユースケース、リポジトリ、atGPアダプタ、RSS生成を接続してfixture E2Eを通す | atGP fixture E2E実装 |
 | [ ] | 11 | FastAPI・RSS配信をTDDで実装 | 条件登録とRSS取得をHTTP経由で実行できるようにする | RSS API |
 | [ ] | 11.1 | 購読条件登録APIテスト作成 | 地域、職種、組み合わせ条件を登録し、購読条件IDまたはRSS URLを返せることをテスト化する | Subscription APIテスト |
