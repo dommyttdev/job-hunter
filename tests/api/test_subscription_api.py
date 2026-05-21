@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
+from tests.fakes.repository import FakeRepository
 
 from job_search_rss.api import create_app
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
-from tests.fakes.repository import FakeRepository
 
 
 def test_subscription_api_registers_condition_and_returns_rss_url() -> None:
