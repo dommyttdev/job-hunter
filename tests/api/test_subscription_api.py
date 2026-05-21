@@ -1,8 +1,13 @@
+from datetime import UTC, datetime
+from xml.etree import ElementTree
+
 from fastapi.testclient import TestClient
 from tests.fakes.repository import FakeRepository
 
 from job_search_rss.api import create_app
 from job_search_rss.domain.condition_values import Occupation, Region
+from job_search_rss.domain.history import JobChange, JobChangeType
+from job_search_rss.domain.job import Job
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 
 
@@ -29,3 +34,40 @@ def test_subscription_api_registers_condition_and_returns_rss_url() -> None:
             occupation=Occupation(category="IT Web", detail="Backend Engineer"),
         )
     ]
+
+
+def test_rss_api_returns_subscription_feed_from_saved_changes() -> None:
+    repository = FakeRepository()
+    subscription_condition = SubscriptionCondition(region=Region(prefecture="Tokyo"))
+    repository.save_subscription_condition(subscription_condition)
+    repository.save_job(
+        Job(
+            job_id="atgp-001",
+            site_id="atgp",
+            title="Backend Engineer",
+            company_name="Example Inc.",
+            detail_url="https://example.test/jobs/atgp-001",
+            work_location="Tokyo",
+            occupation="Web Engineer",
+            salary="5,000,000 JPY",
+            content_hash="hash-001",
+        )
+    )
+    repository.save_job_change(
+        JobChange(
+            job_id="atgp-001",
+            collection_condition_key="collection:atgp:region:tokyo",
+            change_type=JobChangeType.NEW,
+            content_hash="hash-001",
+            occurred_at=datetime(2026, 5, 21, 12, 0, tzinfo=UTC),
+        )
+    )
+    client = TestClient(create_app(repository=repository))
+
+    response = client.get("/rss/subscription:region:tokyo")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/rss+xml")
+    rss_item = ElementTree.fromstring(response.text).find("channel/item")
+    assert rss_item is not None
+    assert rss_item.findtext("title") == "[new] Backend Engineer - Example Inc."
