@@ -153,3 +153,47 @@
 - MVPのRSS項目は共通モデルから生成できる情報に限定する。
 - atGP固有の表示項目やサイト別テンプレートのテストは対象外とする。
 - 将来対応時は、共通RSS項目を壊さない拡張フィールドとして扱う。
+
+## WBS 1.4 アーキテクチャ境界の検証観点
+
+### BND-001: ドメインモデルは外部技術へ依存しない
+
+- domain配下はFastAPI、SQLAlchemy、HTTPX、Playwright、BeautifulSoup、feedgenをimportしない。
+- domain配下は標準ライブラリとドメイン内の型だけで単体テストを実行できる。
+- 求人、地域、職種、条件、変更履歴はサイト固有HTMLやDBモデルを知らない。
+
+### BND-002: ユースケースは抽象ポートだけに依存する
+
+- usecase配下はRepository、SiteAdapter、RssRendererなどのポートに依存する。
+- usecase配下でSQLAlchemy Session、FastAPI Request、HTTPX Client、Playwright Pageを生成しない。
+- テストではfake Repository、fake SiteAdapter、fake RssRendererへ差し替えて主要フローを実行できる。
+
+### BND-003: サイト固有処理はadaptersに閉じ込める
+
+- atGPの検索パラメータ、HTML構造、求人ID抽出、マスター変換はatGPアダプタ配下に置く。
+- 中核ユースケースのテストデータはatGP固有のCSSセレクタやURLパラメータに依存しない。
+- 将来サイトを追加するときは、SiteAdapter実装とマッピングの追加を主な変更範囲にする。
+
+### BND-004: 永続化詳細はinfrastructureに閉じ込める
+
+- SQLAlchemy ORMモデル、Alembic migration、SQLite接続設定はinfrastructure配下に置く。
+- Repositoryの契約テストはfake実装とSQLAlchemy実装の両方に適用できる。
+- ユースケースはトランザクション境界を抽象化されたRepository操作として扱う。
+
+### BND-005: RSS配信は保存済みデータだけを読む
+
+- RSS生成ユースケースはRepositoryとRssRendererだけを使用する。
+- RSS生成中にSiteAdapter、HTTPクライアント、Playwright、HTMLパーサーが呼ばれないことをテストする。
+- RSS項目の整形責務はRssRendererに閉じ込め、変更履歴抽出責務と分離する。
+
+### BND-006: APIとCLIは薄い入口にする
+
+- FastAPI endpointとCLI commandは入力変換、ユースケース呼び出し、出力整形に限定する。
+- APIとCLI内に差分検出、収集条件導出、RSS抽出の業務ルールを書かない。
+- 入力正規化は再利用可能なmapperまたはユースケース入力モデルとしてテストする。
+
+### BND-007: DIで具体実装を組み立てる
+
+- 実行環境ではDI構成がRepository、SiteAdapter、RssRenderer、Settingsを組み立てる。
+- テスト環境では同じユースケースへfake実装を注入できる。
+- 具体実装の生成はユースケース内部ではなく、アプリケーション起動またはテストfixtureで行う。
