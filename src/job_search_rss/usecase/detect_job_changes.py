@@ -26,7 +26,6 @@ class DetectJobChanges:
         changes: list[JobChange] = []
 
         for job in fetched_jobs:
-            self._repository.save_job(job)
             existing_job = existing_jobs_by_id.get(job.job_id)
             if existing_job is None:
                 change_type = JobChangeType.NEW
@@ -34,6 +33,7 @@ class DetectJobChanges:
                 change_type = JobChangeType.UPDATED
             else:
                 continue
+            self._repository.save_job(job)
             change = JobChange(
                 job_id=job.job_id,
                 collection_condition_key=condition.normalized_key,
