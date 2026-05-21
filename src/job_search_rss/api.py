@@ -54,7 +54,13 @@ def create_app(*, repository: SubscriptionRepository) -> FastAPI:
     )
 
     def register_subscription(request: SubscriptionRequest) -> SubscriptionResponse:
-        condition = _subscription_condition_from_request(request)
+        try:
+            condition = _subscription_condition_from_request(request)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
         registered = RegisterSubscriptionCondition(repository).execute(condition)
         return SubscriptionResponse(
             subscription_id=registered.id,
