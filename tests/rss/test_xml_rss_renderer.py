@@ -22,6 +22,7 @@ def test_xml_rss_renderer_outputs_expected_item_fields() -> None:
         link="https://example.test/rss",
         description="Latest job posting changes",
     ).render_items([item])
+    assert xml.startswith("<?xml version='1.0' encoding='utf-8'?>")
     channel = ElementTree.fromstring(xml).find("channel")
     assert channel is not None
     rss_item = channel.find("item")
@@ -31,5 +32,8 @@ def test_xml_rss_renderer_outputs_expected_item_fields() -> None:
     assert rss_item.findtext("link") == "https://example.test/jobs/atgp-001"
     assert rss_item.findtext("description") == "new / Tokyo / Web Engineer / Example Inc."
     assert rss_item.findtext("guid") == "atgp-001:hash-001:new"
+    guid = rss_item.find("guid")
+    assert guid is not None
+    assert guid.attrib == {"isPermaLink": "false"}
     assert rss_item.findtext("category") == "new"
     assert rss_item.findtext("pubDate") == "Thu, 21 May 2026 12:00:00 +0000"

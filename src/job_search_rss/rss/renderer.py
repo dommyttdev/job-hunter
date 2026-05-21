@@ -36,15 +36,30 @@ class XmlRssRenderer:
             _add_text(item_element, "title", item.title)
             _add_text(item_element, "link", item.link)
             _add_text(item_element, "description", item.description)
-            _add_text(item_element, "guid", item.guid)
+            _add_text(
+                item_element,
+                "guid",
+                item.guid,
+                attributes={"isPermaLink": "false"},
+            )
             _add_text(item_element, "pubDate", format_datetime(item.pub_date))
             _add_text(item_element, "category", item.change_type.value)
             _add_text(item_element, "category", item.region)
             _add_text(item_element, "category", item.occupation)
 
-        return ElementTree.tostring(rss, encoding="unicode")
+        return ElementTree.tostring(
+            rss,
+            encoding="utf-8",
+            xml_declaration=True,
+        ).decode("utf-8")
 
 
-def _add_text(parent: ElementTree.Element, tag: str, text: str) -> None:
-    element = ElementTree.SubElement(parent, tag)
+def _add_text(
+    parent: ElementTree.Element,
+    tag: str,
+    text: str,
+    *,
+    attributes: dict[str, str] | None = None,
+) -> None:
+    element = ElementTree.SubElement(parent, tag, attributes or {})
     element.text = text
