@@ -27,13 +27,34 @@ def test_run_collection_executes_registered_collection_conditions() -> None:
     collection_condition = ManageCollectionCondition(repository).execute()[0]
     site_adapter.add_job_for_condition(collection_condition, create_job())
 
-    changes = RunCollection(repository, site_adapter, clock=fixed_clock).execute()
+    result = RunCollection(repository, site_adapter, clock=fixed_clock).execute()
 
-    assert [change.change_type for change in changes] == [JobChangeType.NEW]
+    assert [change.change_type for change in result.changes] == [JobChangeType.NEW]
+    assert result.succeeded_condition_keys == [collection_condition.normalized_key]
+    assert result.failed_condition_keys == []
+    assert result.can_detect_deletions is True
     assert repository.list_job_ids_for_condition(collection_condition.normalized_key) == [
         "atgp-001"
     ]
     assert site_adapter.call_count == 1
+
+
+def test_run_collection_reports_failed_conditions_without_allowing_deletion_detection() -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    RegisterSubscriptionCondition(repository).execute(
+        SubscriptionCondition(region=Region(prefecture="Tokyo"))
+    )
+    collection_condition = ManageCollectionCondition(repository).execute()[0]
+    site_adapter.raise_if_called = True
+
+    result = RunCollection(repository, site_adapter, clock=fixed_clock).execute()
+
+    assert result.changes == []
+    assert result.succeeded_condition_keys == []
+    assert result.failed_condition_keys == [collection_condition.normalized_key]
+    assert result.can_detect_deletions is False
+    assert repository.list_job_ids_for_condition(collection_condition.normalized_key) == []
 
 
 def create_job() -> Job:
