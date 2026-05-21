@@ -22,5 +22,9 @@ class SubscriptionCondition:
             condition_parts.append(self.occupation.normalized_key)
         return f"subscription:{'|'.join(condition_parts)}"
 
+    @property
+    def subscription_id(self) -> str:
+        return self.normalized_key
+
     def has_same_conditions_as(self, other: "SubscriptionCondition") -> bool:
         return self.normalized_key == other.normalized_key

@@ -43,6 +43,12 @@ def test_subscription_condition_matches_by_normalized_key() -> None:
     assert first.has_same_conditions_as(second)
 
 
+def test_subscription_condition_uses_normalized_key_as_subscription_id() -> None:
+    condition = SubscriptionCondition(region=Region(prefecture="Tokyo"))
+
+    assert condition.subscription_id == "subscription:region:tokyo"
+
+
 def test_subscription_condition_requires_region_or_occupation() -> None:
     with pytest.raises(ValueError, match="region or occupation"):
         SubscriptionCondition()

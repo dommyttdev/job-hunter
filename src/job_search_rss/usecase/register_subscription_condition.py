@@ -65,12 +65,12 @@ class RegisterSubscriptionCondition:
             for existing_condition in self._repository.list_subscription_conditions():
                 if existing_condition.has_same_conditions_as(condition):
                     return RegisteredSubscriptionCondition(
-                        id=existing_condition.normalized_key,
+                        id=existing_condition.subscription_id,
                         condition=existing_condition,
                     )
             self._repository.save_subscription_condition(condition)
             return RegisteredSubscriptionCondition(
-                id=condition.normalized_key,
+                id=condition.subscription_id,
                 condition=condition,
             )
         if (
