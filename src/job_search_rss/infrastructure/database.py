@@ -34,6 +34,22 @@ class JobRecord(Base):
     content_hash: Mapped[str] = mapped_column(String(128), nullable=False)
 
 
+class RegionRecord(Base):
+    __tablename__ = "regions"
+
+    normalized_key: Mapped[str] = mapped_column(String(512), primary_key=True)
+    prefecture: Mapped[str] = mapped_column(String(255), nullable=False)
+    city: Mapped[str | None] = mapped_column(String(255))
+
+
+class OccupationRecord(Base):
+    __tablename__ = "occupations"
+
+    normalized_key: Mapped[str] = mapped_column(String(512), primary_key=True)
+    category: Mapped[str] = mapped_column(String(255), nullable=False)
+    detail: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
 class JobChangeRecord(Base):
     __tablename__ = "job_changes"
 
@@ -97,6 +113,30 @@ def create_schema(engine: Engine) -> None:
 class SqlAlchemyRepository(Repository):
     def __init__(self, engine: Engine) -> None:
         self._session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    def save_region(self, region: Region) -> None:
+        with self._session_factory() as session:
+            session.merge(_region_record_from_domain(region))
+            session.commit()
+
+    def list_regions(self) -> list[Region]:
+        with self._session_factory() as session:
+            records = session.query(RegionRecord).order_by(RegionRecord.normalized_key).all()
+            return [_region_from_record(record) for record in records]
+
+    def save_occupation(self, occupation: Occupation) -> None:
+        with self._session_factory() as session:
+            session.merge(_occupation_record_from_domain(occupation))
+            session.commit()
+
+    def list_occupations(self) -> list[Occupation]:
+        with self._session_factory() as session:
+            records = (
+                session.query(OccupationRecord)
+                .order_by(OccupationRecord.normalized_key)
+                .all()
+            )
+            return [_occupation_from_record(record) for record in records]
 
     def save_job(self, job: Job) -> None:
         with self._session_factory() as session:
@@ -198,6 +238,30 @@ def _job_record_from_domain(job: Job) -> JobRecord:
         salary=job.salary,
         content_hash=job.content_hash,
     )
+
+
+def _region_record_from_domain(region: Region) -> RegionRecord:
+    return RegionRecord(
+        normalized_key=region.normalized_key,
+        prefecture=region.prefecture,
+        city=region.city,
+    )
+
+
+def _region_from_record(record: RegionRecord) -> Region:
+    return Region(prefecture=record.prefecture, city=record.city)
+
+
+def _occupation_record_from_domain(occupation: Occupation) -> OccupationRecord:
+    return OccupationRecord(
+        normalized_key=occupation.normalized_key,
+        category=occupation.category,
+        detail=occupation.detail,
+    )
+
+
+def _occupation_from_record(record: OccupationRecord) -> Occupation:
+    return Occupation(category=record.category, detail=record.detail)
 
 
 def _job_from_record(record: JobRecord) -> Job:

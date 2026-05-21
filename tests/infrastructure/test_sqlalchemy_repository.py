@@ -47,6 +47,8 @@ def test_sqlalchemy_repository_stores_domain_objects() -> None:
         site_id="atgp",
         subscription_condition=subscription_condition,
     )
+    region = Region(prefecture="Tokyo", city="Shibuya")
+    occupation = Occupation(category="Engineering", detail="Web")
     run = CollectionRun.succeeded(
         collection_condition_key=collection_condition.normalized_key,
         started_at=occurred_at,
@@ -54,6 +56,8 @@ def test_sqlalchemy_repository_stores_domain_objects() -> None:
         collected_job_count=1,
     )
 
+    repository.save_region(region)
+    repository.save_occupation(occupation)
     repository.save_job(job)
     repository.save_job_change(change)
     repository.save_subscription_condition(subscription_condition)
@@ -64,6 +68,8 @@ def test_sqlalchemy_repository_stores_domain_objects() -> None:
         job_ids=[job.job_id],
     )
 
+    assert repository.list_regions() == [region]
+    assert repository.list_occupations() == [occupation]
     assert repository.list_jobs() == [job]
     assert repository.list_job_changes() == [change]
     assert repository.list_subscription_conditions() == [subscription_condition]

@@ -1,4 +1,5 @@
 from job_search_rss.domain.collection_condition import CollectionCondition
+from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.history import CollectionRun, JobChange
 from job_search_rss.domain.job import Job
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
@@ -11,6 +12,8 @@ class FakeRepository:
     def __init__(self) -> None:
         self._subscriptions: dict[str, Subscription] = {}
         self._changes_by_subscription: dict[str, list[JobChangeData]] = {}
+        self._regions: dict[str, Region] = {}
+        self._occupations: dict[str, Occupation] = {}
         self._jobs: list[Job] = []
         self._job_changes: list[JobChange] = []
         self._subscription_conditions: list[SubscriptionCondition] = []
@@ -51,6 +54,18 @@ class FakeRepository:
 
     def list_changes_for_subscription(self, subscription_id: str) -> list[JobChangeData]:
         return list(self._changes_by_subscription[subscription_id])
+
+    def save_region(self, region: Region) -> None:
+        self._regions[region.normalized_key] = region
+
+    def list_regions(self) -> list[Region]:
+        return list(self._regions.values())
+
+    def save_occupation(self, occupation: Occupation) -> None:
+        self._occupations[occupation.normalized_key] = occupation
+
+    def list_occupations(self) -> list[Occupation]:
+        return list(self._occupations.values())
 
     def save_job(self, job: Job) -> None:
         self._jobs.append(job)

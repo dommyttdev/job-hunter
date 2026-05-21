@@ -22,6 +22,8 @@ def test_alembic_upgrade_creates_required_tables() -> None:
         assert set(inspector.get_table_names()) >= {
             "alembic_version",
             "jobs",
+            "regions",
+            "occupations",
             "job_changes",
             "subscription_conditions",
             "collection_conditions",
