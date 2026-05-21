@@ -99,6 +99,31 @@ def test_detect_job_changes_does_not_duplicate_update_change_on_rerun() -> None:
     assert len(repository.list_job_changes()) == 1
 
 
+def test_detect_job_changes_records_deleted_job_when_previous_snapshot_disappears() -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    condition = CollectionCondition(site_id="atgp", condition_key="region:tokyo")
+    existing_job = create_job(job_id="atgp-001", content_hash="hash-001")
+    repository.save_job(existing_job)
+    repository.save_condition_snapshot(
+        collection_condition_key=condition.normalized_key,
+        job_ids=["atgp-001"],
+    )
+
+    changes = DetectJobChanges(
+        repository,
+        site_adapter,
+        clock=fixed_clock,
+    ).execute(condition)
+
+    assert len(changes) == 1
+    assert changes[0].job_id == "atgp-001"
+    assert changes[0].change_type is JobChangeType.DELETED
+    assert changes[0].content_hash == "hash-001"
+    assert repository.list_job_changes() == changes
+    assert repository.list_job_ids_for_condition(condition.normalized_key) == []
+
+
 def create_job(
     *,
     job_id: str,

@@ -16,6 +16,7 @@ class FakeRepository:
         self._subscription_conditions: list[SubscriptionCondition] = []
         self._collection_conditions: list[CollectionCondition] = []
         self._collection_runs: list[CollectionRun] = []
+        self._condition_snapshots: dict[str, list[str]] = {}
 
     def add_subscription(
         self,
@@ -80,6 +81,17 @@ class FakeRepository:
 
     def list_collection_runs(self) -> list[CollectionRun]:
         return list(self._collection_runs)
+
+    def save_condition_snapshot(
+        self,
+        *,
+        collection_condition_key: str,
+        job_ids: list[str],
+    ) -> None:
+        self._condition_snapshots[collection_condition_key] = list(job_ids)
+
+    def list_job_ids_for_condition(self, collection_condition_key: str) -> list[str]:
+        return list(self._condition_snapshots.get(collection_condition_key, []))
 
     @staticmethod
     def _condition_key(prefecture: str, occupation_detail: str) -> str:

@@ -47,9 +47,16 @@ def test_fake_repository_stores_domain_objects() -> None:
     repository.save_subscription_condition(subscription_condition)
     repository.save_collection_condition(collection_condition)
     repository.save_collection_run(run)
+    repository.save_condition_snapshot(
+        collection_condition_key=collection_condition.normalized_key,
+        job_ids=[job.job_id],
+    )
 
     assert repository.list_jobs() == [job]
     assert repository.list_job_changes() == [change]
     assert repository.list_subscription_conditions() == [subscription_condition]
     assert repository.list_collection_conditions() == [collection_condition]
     assert repository.list_collection_runs() == [run]
+    assert repository.list_job_ids_for_condition(collection_condition.normalized_key) == [
+        job.job_id
+    ]

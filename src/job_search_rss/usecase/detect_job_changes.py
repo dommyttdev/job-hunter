@@ -23,6 +23,10 @@ class DetectJobChanges:
         started_at = self._clock()
         fetched_jobs = self._site_adapter.fetch_jobs_for_condition(condition)
         existing_jobs_by_id = {job.job_id: job for job in self._repository.list_jobs()}
+        fetched_job_ids = {job.job_id for job in fetched_jobs}
+        previous_job_ids = set(
+            self._repository.list_job_ids_for_condition(condition.normalized_key)
+        )
         changes: list[JobChange] = []
 
         for job in fetched_jobs:
@@ -44,6 +48,18 @@ class DetectJobChanges:
             self._repository.save_job_change(change)
             changes.append(change)
 
+        for deleted_job_id in sorted(previous_job_ids - fetched_job_ids):
+            existing_job = existing_jobs_by_id[deleted_job_id]
+            change = JobChange(
+                job_id=deleted_job_id,
+                collection_condition_key=condition.normalized_key,
+                change_type=JobChangeType.DELETED,
+                content_hash=existing_job.content_hash,
+                occurred_at=started_at,
+            )
+            self._repository.save_job_change(change)
+            changes.append(change)
+
         finished_at = self._clock()
         self._repository.save_collection_run(
             CollectionRun.succeeded(
@@ -52,6 +68,10 @@ class DetectJobChanges:
                 finished_at=finished_at,
                 collected_job_count=len(fetched_jobs),
             )
+        )
+        self._repository.save_condition_snapshot(
+            collection_condition_key=condition.normalized_key,
+            job_ids=[job.job_id for job in fetched_jobs],
         )
         return changes
 
