@@ -1,3 +1,7 @@
+from job_search_rss.domain.collection_condition import CollectionCondition
+from job_search_rss.domain.history import CollectionRun, JobChange
+from job_search_rss.domain.job import Job
+from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.usecase.register_subscription_condition import Subscription
 from tests.fakes.site_adapter import FakeSiteAdapter
 from tests.fakes.types import JobChangeData
@@ -7,6 +11,11 @@ class FakeRepository:
     def __init__(self) -> None:
         self._subscriptions: dict[str, Subscription] = {}
         self._changes_by_subscription: dict[str, list[JobChangeData]] = {}
+        self._jobs: list[Job] = []
+        self._job_changes: list[JobChange] = []
+        self._subscription_conditions: list[SubscriptionCondition] = []
+        self._collection_conditions: list[CollectionCondition] = []
+        self._collection_runs: list[CollectionRun] = []
 
     def add_subscription(
         self,
@@ -41,6 +50,36 @@ class FakeRepository:
 
     def list_changes_for_subscription(self, subscription_id: str) -> list[JobChangeData]:
         return list(self._changes_by_subscription[subscription_id])
+
+    def save_job(self, job: Job) -> None:
+        self._jobs.append(job)
+
+    def list_jobs(self) -> list[Job]:
+        return list(self._jobs)
+
+    def save_job_change(self, change: JobChange) -> None:
+        self._job_changes.append(change)
+
+    def list_job_changes(self) -> list[JobChange]:
+        return list(self._job_changes)
+
+    def save_subscription_condition(self, condition: SubscriptionCondition) -> None:
+        self._subscription_conditions.append(condition)
+
+    def list_subscription_conditions(self) -> list[SubscriptionCondition]:
+        return list(self._subscription_conditions)
+
+    def save_collection_condition(self, condition: CollectionCondition) -> None:
+        self._collection_conditions.append(condition)
+
+    def list_collection_conditions(self) -> list[CollectionCondition]:
+        return list(self._collection_conditions)
+
+    def save_collection_run(self, run: CollectionRun) -> None:
+        self._collection_runs.append(run)
+
+    def list_collection_runs(self) -> list[CollectionRun]:
+        return list(self._collection_runs)
 
     @staticmethod
     def _condition_key(prefecture: str, occupation_detail: str) -> str:
