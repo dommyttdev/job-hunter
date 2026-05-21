@@ -73,6 +73,47 @@ def test_rss_api_returns_subscription_feed_from_saved_changes() -> None:
     assert rss_item.findtext("title") == "[new] Backend Engineer - Example Inc."
 
 
+def test_rss_api_maps_change_type_query_to_rss_filter() -> None:
+    repository = FakeRepository()
+    subscription_condition = SubscriptionCondition(region=Region(prefecture="Tokyo"))
+    repository.save_subscription_condition(subscription_condition)
+    repository.save_job(
+        Job(
+            job_id="atgp-001",
+            site_id="atgp",
+            title="Backend Engineer",
+            company_name="Example Inc.",
+            detail_url="https://example.test/jobs/atgp-001",
+            work_location="Tokyo",
+            occupation="Web Engineer",
+            salary="5,000,000 JPY",
+            content_hash="hash-002",
+        )
+    )
+    for change_type, content_hash in [
+        (JobChangeType.NEW, "hash-001"),
+        (JobChangeType.UPDATED, "hash-002"),
+    ]:
+        repository.save_job_change(
+            JobChange(
+                job_id="atgp-001",
+                collection_condition_key="collection:atgp:region:tokyo",
+                change_type=change_type,
+                content_hash=content_hash,
+                occurred_at=datetime(2026, 5, 21, 12, 0, tzinfo=UTC),
+            )
+        )
+    client = TestClient(create_app(repository=repository))
+
+    response = client.get("/rss/subscription:region:tokyo?change_type=updated")
+
+    rss_items = ElementTree.fromstring(response.text).findall("channel/item")
+    assert response.status_code == 200
+    assert [item.findtext("title") for item in rss_items] == [
+        "[updated] Backend Engineer - Example Inc."
+    ]
+
+
 def test_subscription_api_returns_bad_request_for_empty_condition() -> None:
     repository = FakeRepository()
     client = TestClient(create_app(repository=repository))
