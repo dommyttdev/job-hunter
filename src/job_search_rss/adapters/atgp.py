@@ -106,6 +106,33 @@ def parse_next_page_url(html: str) -> str | None:
     return None
 
 
+def parse_job_detail(html: str, *, detail_url: str) -> Job:
+    detail = _JobDetailParser.collect_detail(html)
+    if detail is None:
+        msg = "atGP job detail was not found"
+        raise ValueError(msg)
+
+    return Job(
+        job_id=detail.job_id,
+        site_id="atgp",
+        title=detail.title,
+        company_name=detail.company_name,
+        detail_url=detail_url,
+        work_location=detail.work_location,
+        occupation=detail.occupation,
+        salary=detail.salary,
+        content_hash=Job.generate_content_hash(
+            title=detail.title,
+            company_name=detail.company_name,
+            detail_url=detail_url,
+            work_location=detail.work_location,
+            occupation=detail.occupation,
+            salary=detail.salary,
+            description=detail.description,
+        ),
+    )
+
+
 @dataclass(frozen=True)
 class _Anchor:
     href: str
@@ -314,6 +341,116 @@ class _JobCardParser(HTMLParser):
         self._pending_definition_label = None
 
 
+@dataclass(frozen=True)
+class _JobDetail:
+    job_id: str
+    title: str
+    company_name: str
+    work_location: str
+    occupation: str
+    salary: str
+    description: str
+
+
+class _JobDetailParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._current: dict[str, str] | None = None
+        self._text_target: str | None = None
+        self._text_parts: list[str] = []
+        self._pending_definition_label: str | None = None
+        self.detail: _JobDetail | None = None
+
+    @classmethod
+    def collect_detail(cls, html: str) -> _JobDetail | None:
+        parser = cls()
+        parser.feed(html)
+        return parser.detail
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr_map = dict(attrs)
+        class_names = _class_names(attr_map.get("class"))
+
+        if tag == "article" and "job-detail" in class_names:
+            self._current = {"job_id": attr_map.get("data-job-id", "") or ""}
+            return
+
+        if self._current is None:
+            return
+
+        if tag == "h1":
+            self._start_text("title")
+            return
+
+        if tag == "p" and "company-name" in class_names:
+            self._start_text("company_name")
+            return
+
+        if tag == "dt":
+            self._start_text("_definition_label")
+            return
+
+        if tag == "dd":
+            self._start_text("_definition_value")
+
+    def handle_data(self, data: str) -> None:
+        if self._text_target is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._current is None:
+            return
+
+        if tag == "article":
+            self.detail = _detail_from_values(self._current)
+            self._current = None
+            return
+
+        if tag in {"h1", "p", "dt", "dd"} and self._text_target is not None:
+            self._finish_text()
+
+    def _start_text(self, target: str) -> None:
+        self._text_target = target
+        self._text_parts = []
+
+    def _finish_text(self) -> None:
+        if self._current is None or self._text_target is None:
+            return
+
+        text = _normalize_text(" ".join(self._text_parts))
+        target = self._text_target
+        self._text_target = None
+        self._text_parts = []
+
+        if target == "_definition_label":
+            self._pending_definition_label = text
+            return
+
+        if target == "_definition_value":
+            self._store_definition_value(text)
+            return
+
+        self._current[target] = text
+
+    def _store_definition_value(self, text: str) -> None:
+        if self._current is None:
+            return
+
+        match self._pending_definition_label:
+            case "職種":
+                self._current["occupation"] = text
+            case "勤務地":
+                self._current["work_location"] = text
+            case "給与":
+                self._current["salary"] = text
+            case "仕事内容":
+                self._current["description"] = text
+            case _:
+                pass
+
+        self._pending_definition_label = None
+
+
 def _first_query_value(url: str, name: str) -> str | None:
     values = _query_values(url, name)
     if not values:
@@ -391,6 +528,32 @@ def _job_from_card(card: _JobCard) -> Job:
             salary=card.salary,
             description="",
         ),
+    )
+
+
+def _detail_from_values(values: dict[str, str]) -> _JobDetail:
+    required_fields = [
+        "job_id",
+        "title",
+        "company_name",
+        "work_location",
+        "occupation",
+        "salary",
+        "description",
+    ]
+    missing_fields = [field for field in required_fields if not values.get(field)]
+    if missing_fields:
+        msg = f"atGP job detail is missing required fields: {', '.join(missing_fields)}"
+        raise ValueError(msg)
+
+    return _JobDetail(
+        job_id=values["job_id"],
+        title=values["title"],
+        company_name=values["company_name"],
+        work_location=values["work_location"],
+        occupation=values["occupation"],
+        salary=values["salary"],
+        description=values["description"],
     )
 
 
