@@ -1,8 +1,12 @@
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
+from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
+
+
+ATGP_SEARCH_URL = "https://www.atgp.jp/search/top/search_result"
 
 
 @dataclass(frozen=True)
@@ -58,6 +62,33 @@ def parse_occupation_master(html: str) -> list[AtgpOccupationMaster]:
         )
 
     return occupations
+
+
+def build_search_url(
+    condition: CollectionCondition,
+    *,
+    region_masters: list[AtgpRegionMaster],
+    occupation_masters: list[AtgpOccupationMaster],
+) -> str:
+    query: dict[str, str] = {}
+    condition_keys = _split_condition_key(condition.condition_key)
+
+    region_key = _find_condition_key(condition_keys, "region:")
+    if region_key is not None:
+        query["prefectures"] = _region_code_for_key(region_key, region_masters)
+
+    occupation_key = _find_condition_key(condition_keys, "occupation:")
+    if occupation_key is not None:
+        occupation = _occupation_for_key(occupation_key, occupation_masters)
+        query["job_categories"] = occupation.category_code
+        if occupation.type_codes:
+            query["job_types"] = ",".join(occupation.type_codes)
+
+    if not query:
+        msg = "atGP search condition requires region or occupation"
+        raise ValueError(msg)
+
+    return f"{ATGP_SEARCH_URL}?{urlencode(query)}"
 
 
 @dataclass(frozen=True)
@@ -124,3 +155,32 @@ def _split_query_values(url: str, name: str) -> list[str]:
 
 def _clean_condition_label(value: str) -> str:
     return value.strip().removesuffix("の求人").strip()
+
+
+def _split_condition_key(condition_key: str) -> list[str]:
+    return [part for part in condition_key.split("|") if part]
+
+
+def _find_condition_key(condition_keys: list[str], prefix: str) -> str | None:
+    return next((key for key in condition_keys if key.startswith(prefix)), None)
+
+
+def _region_code_for_key(region_key: str, masters: list[AtgpRegionMaster]) -> str:
+    for master in masters:
+        if master.region.normalized_key == region_key:
+            return master.code
+
+    msg = f"Unknown atGP region: {region_key}"
+    raise ValueError(msg)
+
+
+def _occupation_for_key(
+    occupation_key: str,
+    masters: list[AtgpOccupationMaster],
+) -> AtgpOccupationMaster:
+    for master in masters:
+        if master.occupation.normalized_key == occupation_key:
+            return master
+
+    msg = f"Unknown atGP occupation: {occupation_key}"
+    raise ValueError(msg)
