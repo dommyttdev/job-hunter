@@ -125,7 +125,7 @@
 | [x] | 10.6 | マスター同期実装 | SyncSiteMasterユースケースを実装する | SyncSiteMaster |
 | [x] | 10.7 | atGP fixture統合テスト作成 | atGP保存HTML fixture、SQLite Repository、RSS生成を一連で実行できることをテスト化する | atGP fixture E2Eテスト |
 | [x] | 10.8 | atGP fixture統合実装調整 | DI、ユースケース、リポジトリ、atGPアダプタ、RSS生成を接続してfixture E2Eを通す | atGP fixture E2E実装 |
-| [ ] | 11 | FastAPI・RSS配信をTDDで実装 | 条件登録とRSS取得をHTTP経由で実行できるようにする | RSS API |
+| [x] | 11 | FastAPI・RSS配信をTDDで実装 | 条件登録とRSS取得をHTTP経由で実行できるようにする | RSS API |
 | [x] | 11.1 | 購読条件登録APIテスト作成 | 地域、職種、組み合わせ条件を登録し、購読条件IDまたはRSS URLを返せることをテスト化する | Subscription APIテスト |
 | [x] | 11.2 | 購読条件登録API実装 | RegisterSubscriptionConditionを呼び出すHTTP入口を実装する | Subscription endpoint |
 | [x] | 11.3 | RSSエンドポイントテスト作成 | 条件指定RSSを取得でき、Content-Typeと文字コードが正しいことをテスト化する | RSS APIテスト |
