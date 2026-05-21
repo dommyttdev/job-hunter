@@ -29,6 +29,8 @@ class SubscriptionRepository(Protocol):
 class SubscriptionConditionRepository(Protocol):
     def save_subscription_condition(self, condition: SubscriptionCondition) -> None: ...
 
+    def list_subscription_conditions(self) -> list[SubscriptionCondition]: ...
+
 
 class RegisterSubscriptionCondition:
     def __init__(self, repository: SubscriptionConditionRepository) -> None:
@@ -60,6 +62,12 @@ class RegisterSubscriptionCondition:
         occupation_detail: str | None = None,
     ) -> RegisteredSubscriptionCondition | Subscription:
         if condition is not None:
+            for existing_condition in self._repository.list_subscription_conditions():
+                if existing_condition.has_same_conditions_as(condition):
+                    return RegisteredSubscriptionCondition(
+                        id=existing_condition.normalized_key,
+                        condition=existing_condition,
+                    )
             self._repository.save_subscription_condition(condition)
             return RegisteredSubscriptionCondition(
                 id=condition.normalized_key,
