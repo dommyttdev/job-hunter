@@ -2,7 +2,6 @@ from pathlib import Path
 
 from job_search_rss.adapters.atgp import parse_next_page_url
 
-
 FIXTURE_DIR = Path(__file__).parents[1] / "fixtures" / "atgp"
 
 

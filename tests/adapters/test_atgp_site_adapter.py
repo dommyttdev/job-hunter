@@ -4,7 +4,6 @@ from job_search_rss.adapters.atgp import AtgpSiteAdapter
 from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 
-
 FIXTURE_DIR = Path(__file__).parents[1] / "fixtures" / "atgp"
 
 

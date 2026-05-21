@@ -10,7 +10,6 @@ from job_search_rss.adapters.atgp import (
 from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 
-
 TOKYO = Region(prefecture="東京都")
 ENGINEER = Occupation(category="IT・エンジニア", detail="IT・エンジニア")
 

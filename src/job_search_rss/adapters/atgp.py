@@ -7,7 +7,6 @@ from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.job import Job
 
-
 ATGP_SEARCH_URL = "https://www.atgp.jp/search/top/search_result"
 ATGP_BASE_URL = "https://www.atgp.jp"
 ATGP_OCCUPATION_MASTER_URL = f"{ATGP_SEARCH_URL}?masters=occupations"

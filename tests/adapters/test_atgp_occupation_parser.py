@@ -3,7 +3,6 @@ from pathlib import Path
 from job_search_rss.adapters.atgp import AtgpOccupationMaster, parse_occupation_master
 from job_search_rss.domain.condition_values import Occupation
 
-
 FIXTURE_DIR = Path(__file__).parents[1] / "fixtures" / "atgp"
 
 

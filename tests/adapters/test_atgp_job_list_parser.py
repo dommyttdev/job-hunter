@@ -5,7 +5,6 @@ from typing import Any
 from job_search_rss.adapters.atgp import parse_job_list
 from job_search_rss.domain.job import Job
 
-
 FIXTURE_DIR = Path(__file__).parents[1] / "fixtures" / "atgp"
 
 
