@@ -1,10 +1,10 @@
-from typing import Protocol
+from typing import Annotated, Protocol
 
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
 from job_search_rss.domain.condition_values import Occupation, Region
-from job_search_rss.domain.history import JobChange
+from job_search_rss.domain.history import JobChange, JobChangeType
 from job_search_rss.domain.job import Job
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.rss.renderer import XmlRssRenderer
@@ -75,10 +75,16 @@ def create_app(*, repository: SubscriptionRepository) -> FastAPI:
         status_code=status.HTTP_201_CREATED,
     )
 
-    def get_rss(subscription_id: str) -> Response:
+    def get_rss(
+        subscription_id: str,
+        change_type: Annotated[list[JobChangeType] | None, Query()] = None,
+    ) -> Response:
         subscription_condition = _find_subscription_condition(repository, subscription_id)
         xml = GenerateRssFeed(repository, rss_renderer).execute(
-            RssChangeQuery(subscription_condition=subscription_condition)
+            RssChangeQuery(
+                subscription_condition=subscription_condition,
+                change_types=set(change_type or []),
+            )
         )
         return Response(content=xml, media_type="application/rss+xml")
 
