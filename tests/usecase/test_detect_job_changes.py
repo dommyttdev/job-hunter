@@ -154,6 +154,29 @@ def test_detect_job_changes_records_failure_without_deleting_previous_snapshot()
     assert repository.list_collection_runs()[0].error_message == "SiteAdapter must not be called"
 
 
+def test_detect_job_changes_updates_condition_snapshot_after_successful_collection() -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    condition = CollectionCondition(site_id="atgp", condition_key="region:tokyo")
+    old_job = create_job(job_id="old-job", content_hash="old-hash")
+    first_job = create_job(job_id="atgp-001", content_hash="hash-001")
+    second_job = create_job(job_id="atgp-002", content_hash="hash-002")
+    repository.save_job(old_job)
+    repository.save_condition_snapshot(
+        collection_condition_key=condition.normalized_key,
+        job_ids=["old-job"],
+    )
+    site_adapter.add_job_for_condition(condition, first_job)
+    site_adapter.add_job_for_condition(condition, second_job)
+
+    DetectJobChanges(repository, site_adapter, clock=fixed_clock).execute(condition)
+
+    assert repository.list_job_ids_for_condition(condition.normalized_key) == [
+        "atgp-001",
+        "atgp-002",
+    ]
+
+
 def create_job(
     *,
     job_id: str,
