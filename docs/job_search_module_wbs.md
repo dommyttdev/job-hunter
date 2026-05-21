@@ -128,8 +128,8 @@
 | [ ] | 11 | FastAPI・RSS配信をTDDで実装 | 条件登録とRSS取得をHTTP経由で実行できるようにする | RSS API |
 | [x] | 11.1 | 購読条件登録APIテスト作成 | 地域、職種、組み合わせ条件を登録し、購読条件IDまたはRSS URLを返せることをテスト化する | Subscription APIテスト |
 | [x] | 11.2 | 購読条件登録API実装 | RegisterSubscriptionConditionを呼び出すHTTP入口を実装する | Subscription endpoint |
-| [ ] | 11.3 | RSSエンドポイントテスト作成 | 条件指定RSSを取得でき、Content-Typeと文字コードが正しいことをテスト化する | RSS APIテスト |
-| [ ] | 11.4 | RSSエンドポイント実装 | RSSエンドポイントを実装する | RSS endpoint |
+| [x] | 11.3 | RSSエンドポイントテスト作成 | 条件指定RSSを取得でき、Content-Typeと文字コードが正しいことをテスト化する | RSS APIテスト |
+| [x] | 11.4 | RSSエンドポイント実装 | RSSエンドポイントを実装する | RSS endpoint |
 | [ ] | 11.5 | APIエラー応答テスト作成 | 不正条件や存在しない条件のレスポンスをテスト化する | API errorテスト |
 | [ ] | 11.6 | APIエラー応答実装 | エラー時レスポンスを整える | Response仕様 |
 | [ ] | 11.7 | RSS条件入力テスト作成 | API入力の地域、職種、変更種別、購読条件IDをユースケース向け条件へ変換できることをテスト化する | API conditionテスト |
