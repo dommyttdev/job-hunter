@@ -98,10 +98,25 @@ def parse_job_list(html: str) -> list[Job]:
     return [_job_from_card(card) for card in cards]
 
 
+def parse_next_page_url(html: str) -> str | None:
+    links = _ClassedLinkParser.collect_links(html)
+    for link in links:
+        if "next" in link.class_names:
+            return urljoin(ATGP_BASE_URL, link.href)
+    return None
+
+
 @dataclass(frozen=True)
 class _Anchor:
     href: str
     text: str
+
+
+@dataclass(frozen=True)
+class _ClassedAnchor:
+    href: str
+    text: str
+    class_names: frozenset[str]
 
 
 class _LinkParser(HTMLParser):
@@ -139,6 +154,54 @@ class _LinkParser(HTMLParser):
         text = " ".join(part.strip() for part in self._current_text_parts if part.strip())
         self.links.append(_Anchor(href=self._current_href, text=text))
         self._current_href = None
+        self._current_text_parts = []
+
+
+class _ClassedLinkParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._current_href: str | None = None
+        self._current_class_names: frozenset[str] = frozenset()
+        self._current_text_parts: list[str] = []
+        self.links: list[_ClassedAnchor] = []
+
+    @classmethod
+    def collect_links(cls, html: str) -> list[_ClassedAnchor]:
+        parser = cls()
+        parser.feed(html)
+        return parser.links
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "a":
+            return
+
+        attr_map = dict(attrs)
+        href = attr_map.get("href")
+        if href is None:
+            return
+
+        self._current_href = href
+        self._current_class_names = frozenset(_class_names(attr_map.get("class")))
+        self._current_text_parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self._current_href is not None:
+            self._current_text_parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag != "a" or self._current_href is None:
+            return
+
+        text = _normalize_text(" ".join(self._current_text_parts))
+        self.links.append(
+            _ClassedAnchor(
+                href=self._current_href,
+                text=text,
+                class_names=self._current_class_names,
+            )
+        )
+        self._current_href = None
+        self._current_class_names = frozenset()
         self._current_text_parts = []
 
 
