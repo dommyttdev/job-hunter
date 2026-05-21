@@ -71,3 +71,23 @@ def test_rss_api_returns_subscription_feed_from_saved_changes() -> None:
     rss_item = ElementTree.fromstring(response.text).find("channel/item")
     assert rss_item is not None
     assert rss_item.findtext("title") == "[new] Backend Engineer - Example Inc."
+
+
+def test_subscription_api_returns_bad_request_for_empty_condition() -> None:
+    repository = FakeRepository()
+    client = TestClient(create_app(repository=repository))
+
+    response = client.post("/subscriptions", json={})
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "region or occupation is required"}
+
+
+def test_rss_api_returns_not_found_for_unknown_subscription() -> None:
+    repository = FakeRepository()
+    client = TestClient(create_app(repository=repository))
+
+    response = client.get("/rss/subscription:region:tokyo")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "subscription condition was not found"}
