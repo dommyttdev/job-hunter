@@ -116,7 +116,7 @@
 | [x] | 9.5 | Alembic初期マイグレーション実装 | 初期マイグレーションを作成する | migrationファイル |
 | [x] | 9.6 | インメモリ実装との差し替え確認 | 同じユースケーステストをSQLAlchemy実装でも通す | Repository契約テスト |
 | [x] | 9.7 | 受け入れテストのDB差し替え | fake Repositoryで通った薄い受け入れテストをSQLite Repositoryでも通す | DB使用の薄いE2E |
-| [ ] | 10 | 収集縦断フローをTDDで実装 | fake atGPアダプタからDB保存、差分検出までをつなぐ | 収集バッチ |
+| [x] | 10 | 収集縦断フローをTDDで実装 | fake atGPアダプタからDB保存、差分検出までをつなぐ | 収集バッチ |
 | [x] | 10.1 | 収集実行制御テスト作成 | 対象収集条件を取得し、条件単位で収集を実行することをテスト化する | Collection runnerテスト |
 | [x] | 10.2 | 収集実行制御実装 | 収集条件の巡回、アダプタ呼び出し、差分検出呼び出しを実装する | Collection runner |
 | [x] | 10.3 | 正常収集判定テスト作成 | 完全な収集完了時だけ削除検知を許可することをテスト化する | Collection resultテスト |
@@ -124,7 +124,7 @@
 | [x] | 10.5 | マスター同期テスト作成 | サイト別マスターを共通モデルへ正規化して保存できることをテスト化する | Master syncテスト |
 | [x] | 10.6 | マスター同期実装 | SyncSiteMasterユースケースを実装する | SyncSiteMaster |
 | [x] | 10.7 | atGP fixture統合テスト作成 | atGP保存HTML fixture、SQLite Repository、RSS生成を一連で実行できることをテスト化する | atGP fixture E2Eテスト |
-| [ ] | 10.8 | atGP fixture統合実装調整 | DI、ユースケース、リポジトリ、atGPアダプタ、RSS生成を接続してfixture E2Eを通す | atGP fixture E2E実装 |
+| [x] | 10.8 | atGP fixture統合実装調整 | DI、ユースケース、リポジトリ、atGPアダプタ、RSS生成を接続してfixture E2Eを通す | atGP fixture E2E実装 |
 | [ ] | 11 | FastAPI・RSS配信をTDDで実装 | 条件登録とRSS取得をHTTP経由で実行できるようにする | RSS API |
 | [ ] | 11.1 | 購読条件登録APIテスト作成 | 地域、職種、組み合わせ条件を登録し、購読条件IDまたはRSS URLを返せることをテスト化する | Subscription APIテスト |
 | [ ] | 11.2 | 購読条件登録API実装 | RegisterSubscriptionConditionを呼び出すHTTP入口を実装する | Subscription endpoint |
