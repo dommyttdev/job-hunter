@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
+from job_search_rss.domain.job import Job
 
 
 ATGP_SEARCH_URL = "https://www.atgp.jp/search/top/search_result"
+ATGP_BASE_URL = "https://www.atgp.jp"
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,11 @@ def build_search_url(
     return f"{ATGP_SEARCH_URL}?{urlencode(query)}"
 
 
+def parse_job_list(html: str) -> list[Job]:
+    cards = _JobCardParser.collect_cards(html)
+    return [_job_from_card(card) for card in cards]
+
+
 @dataclass(frozen=True)
 class _Anchor:
     href: str
@@ -135,6 +142,115 @@ class _LinkParser(HTMLParser):
         self._current_text_parts = []
 
 
+@dataclass(frozen=True)
+class _JobCard:
+    job_id: str
+    title: str
+    company_name: str
+    detail_url: str
+    work_location: str
+    occupation: str
+    salary: str
+
+
+class _JobCardParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._current: dict[str, str] | None = None
+        self._text_target: str | None = None
+        self._text_parts: list[str] = []
+        self._pending_definition_label: str | None = None
+        self.cards: list[_JobCard] = []
+
+    @classmethod
+    def collect_cards(cls, html: str) -> list[_JobCard]:
+        parser = cls()
+        parser.feed(html)
+        return parser.cards
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr_map = dict(attrs)
+        class_names = _class_names(attr_map.get("class"))
+
+        if tag == "article" and "job-card" in class_names:
+            self._current = {"job_id": attr_map.get("data-job-id", "") or ""}
+            return
+
+        if self._current is None:
+            return
+
+        if tag == "a" and "job-title" in class_names:
+            self._current["detail_url"] = urljoin(ATGP_BASE_URL, attr_map.get("href", "") or "")
+            self._start_text("title")
+            return
+
+        if tag == "h2" and "company-name" in class_names:
+            self._start_text("company_name")
+            return
+
+        if tag == "dt":
+            self._start_text("_definition_label")
+            return
+
+        if tag == "dd":
+            self._start_text("_definition_value")
+
+    def handle_data(self, data: str) -> None:
+        if self._text_target is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._current is None:
+            return
+
+        if tag == "article":
+            self.cards.append(_card_from_values(self._current))
+            self._current = None
+            return
+
+        if tag in {"a", "h2", "dt", "dd"} and self._text_target is not None:
+            self._finish_text()
+
+    def _start_text(self, target: str) -> None:
+        self._text_target = target
+        self._text_parts = []
+
+    def _finish_text(self) -> None:
+        if self._current is None or self._text_target is None:
+            return
+
+        text = _normalize_text(" ".join(self._text_parts))
+        target = self._text_target
+        self._text_target = None
+        self._text_parts = []
+
+        if target == "_definition_label":
+            self._pending_definition_label = text
+            return
+
+        if target == "_definition_value":
+            self._store_definition_value(text)
+            return
+
+        self._current[target] = text
+
+    def _store_definition_value(self, text: str) -> None:
+        if self._current is None:
+            return
+
+        match self._pending_definition_label:
+            case "職種":
+                self._current["occupation"] = text
+            case "勤務地":
+                self._current["work_location"] = text
+            case "給与":
+                self._current["salary"] = text
+            case _:
+                pass
+
+        self._pending_definition_label = None
+
+
 def _first_query_value(url: str, name: str) -> str | None:
     values = _query_values(url, name)
     if not values:
@@ -155,6 +271,64 @@ def _split_query_values(url: str, name: str) -> list[str]:
 
 def _clean_condition_label(value: str) -> str:
     return value.strip().removesuffix("の求人").strip()
+
+
+def _normalize_text(value: str) -> str:
+    return " ".join(value.split())
+
+
+def _class_names(value: str | None) -> set[str]:
+    if value is None:
+        return set()
+    return set(value.split())
+
+
+def _card_from_values(values: dict[str, str]) -> _JobCard:
+    required_fields = [
+        "job_id",
+        "title",
+        "company_name",
+        "detail_url",
+        "work_location",
+        "occupation",
+        "salary",
+    ]
+    missing_fields = [field for field in required_fields if not values.get(field)]
+    if missing_fields:
+        msg = f"atGP job card is missing required fields: {', '.join(missing_fields)}"
+        raise ValueError(msg)
+
+    return _JobCard(
+        job_id=values["job_id"],
+        title=values["title"],
+        company_name=values["company_name"],
+        detail_url=values["detail_url"],
+        work_location=values["work_location"],
+        occupation=values["occupation"],
+        salary=values["salary"],
+    )
+
+
+def _job_from_card(card: _JobCard) -> Job:
+    return Job(
+        job_id=card.job_id,
+        site_id="atgp",
+        title=card.title,
+        company_name=card.company_name,
+        detail_url=card.detail_url,
+        work_location=card.work_location,
+        occupation=card.occupation,
+        salary=card.salary,
+        content_hash=Job.generate_content_hash(
+            title=card.title,
+            company_name=card.company_name,
+            detail_url=card.detail_url,
+            work_location=card.work_location,
+            occupation=card.occupation,
+            salary=card.salary,
+            description="",
+        ),
+    )
 
 
 def _split_condition_key(condition_key: str) -> list[str]:
