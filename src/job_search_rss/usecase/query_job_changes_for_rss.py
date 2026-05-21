@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.history import JobChange, JobChangeType
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
-from job_search_rss.ports.repository import Repository
 
 
 def _empty_change_types() -> set[JobChangeType]:
@@ -17,8 +17,12 @@ class RssChangeQuery:
     site_id: str = "atgp"
 
 
+class JobChangeRepository(Protocol):
+    def list_job_changes(self) -> list[JobChange]: ...
+
+
 class QueryJobChangesForRss:
-    def __init__(self, repository: Repository) -> None:
+    def __init__(self, repository: JobChangeRepository) -> None:
         self._repository = repository
 
     def execute(self, query: RssChangeQuery) -> list[JobChange]:
