@@ -10,10 +10,16 @@ from job_search_rss.domain.job import Job
 
 ATGP_SEARCH_URL = "https://www.atgp.jp/search/top/search_result"
 ATGP_BASE_URL = "https://www.atgp.jp"
+ATGP_OCCUPATION_MASTER_URL = f"{ATGP_SEARCH_URL}?masters=occupations"
+ATGP_DETAIL_URL_TEMPLATE = f"{ATGP_BASE_URL}/search/top/search_result_detail/{{job_id}}"
 
 
 class PageClient(Protocol):
     def get_text(self, url: str, *, timeout_seconds: float) -> str: ...
+
+
+class PageFetcher(Protocol):
+    def fetch_page(self, url: str) -> str: ...
 
 
 class AtgpFetchError(RuntimeError):
@@ -44,6 +50,73 @@ class AtgpPageFetcher:
         except Exception as exc:
             msg = f"Failed to fetch atGP page: {url}"
             raise AtgpFetchError(msg) from exc
+
+
+class AtgpSiteAdapter:
+    def __init__(
+        self,
+        fetcher: PageFetcher,
+        *,
+        region_master_url: str = ATGP_SEARCH_URL,
+        occupation_master_url: str = ATGP_OCCUPATION_MASTER_URL,
+    ) -> None:
+        self._fetcher = fetcher
+        self._region_master_url = region_master_url
+        self._occupation_master_url = occupation_master_url
+        self._region_masters: list[AtgpRegionMaster] | None = None
+        self._occupation_masters: list[AtgpOccupationMaster] | None = None
+
+    def add_region(self, region: Region) -> None:
+        raise NotImplementedError("atGP adapter reads regions from atGP pages")
+
+    def list_regions(self) -> list[Region]:
+        return [master.region for master in self._load_region_masters()]
+
+    def add_occupation(self, occupation: Occupation) -> None:
+        raise NotImplementedError("atGP adapter reads occupations from atGP pages")
+
+    def list_occupations(self) -> list[Occupation]:
+        return [master.occupation for master in self._load_occupation_masters()]
+
+    def add_job_for_condition(self, condition: CollectionCondition, job: Job) -> None:
+        raise NotImplementedError("atGP adapter reads jobs from atGP pages")
+
+    def fetch_jobs_for_condition(self, condition: CollectionCondition) -> list[Job]:
+        url: str | None = build_search_url(
+            condition,
+            region_masters=self._load_region_masters(),
+            occupation_masters=self._load_occupation_masters(),
+        )
+        jobs: list[Job] = []
+
+        while url is not None:
+            html = self._fetcher.fetch_page(url)
+            jobs.extend(parse_job_list(html))
+            url = parse_next_page_url(html)
+
+        return jobs
+
+    def fetch_job_detail(self, *, site_id: str, job_id: str) -> Job | None:
+        if site_id != "atgp":
+            return None
+
+        detail_url = ATGP_DETAIL_URL_TEMPLATE.format(job_id=job_id)
+        html = self._fetcher.fetch_page(detail_url)
+        return parse_job_detail(html, detail_url=detail_url)
+
+    def _load_region_masters(self) -> list[AtgpRegionMaster]:
+        if self._region_masters is None:
+            self._region_masters = parse_region_master(
+                self._fetcher.fetch_page(self._region_master_url)
+            )
+        return self._region_masters
+
+    def _load_occupation_masters(self) -> list[AtgpOccupationMaster]:
+        if self._occupation_masters is None:
+            self._occupation_masters = parse_occupation_master(
+                self._fetcher.fetch_page(self._occupation_master_url)
+            )
+        return self._occupation_masters
 
 
 def parse_region_master(html: str) -> list[AtgpRegionMaster]:
