@@ -21,6 +21,7 @@ from job_search_rss.usecase.register_subscription_condition import (
     SubscriptionConditionRepository,
 )
 from job_search_rss.usecase.run_collection import RunCollection
+from job_search_rss.usecase.sync_site_master import SyncSiteMaster
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,12 @@ class RunCollectionCommandResult:
     change_count: int
     succeeded_condition_count: int
     failed_condition_count: int
+
+
+@dataclass(frozen=True)
+class SyncSiteMasterCommandResult:
+    region_count: int
+    occupation_count: int
 
 
 def register_subscription_command(
@@ -68,6 +75,18 @@ def run_collection_command(
         change_count=len(result.changes),
         succeeded_condition_count=len(result.succeeded_condition_keys),
         failed_condition_count=len(result.failed_condition_keys),
+    )
+
+
+def sync_site_master_command(
+    *,
+    repository: Repository,
+    site_adapter: SiteAdapter,
+) -> SyncSiteMasterCommandResult:
+    result = SyncSiteMaster(repository, site_adapter).execute()
+    return SyncSiteMasterCommandResult(
+        region_count=result.region_count,
+        occupation_count=result.occupation_count,
     )
 
 

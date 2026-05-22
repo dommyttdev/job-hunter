@@ -7,8 +7,9 @@ from job_search_rss.cli import (
     main,
     register_subscription_command,
     run_collection_command,
+    sync_site_master_command,
 )
-from job_search_rss.domain.condition_values import Region
+from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.job import Job
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.usecase.manage_collection_condition import ManageCollectionCondition
@@ -100,6 +101,24 @@ def test_main_runs_collection_from_argv(capsys: CaptureFixture[str]) -> None:
     output = capsys.readouterr().out
     assert "change_count=1" in output
     assert "succeeded_condition_count=1" in output
+
+
+def test_sync_site_master_command_saves_regions_and_occupations() -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    site_adapter.add_region(Region(prefecture="Tokyo"))
+    site_adapter.add_occupation(
+        Occupation(category="Engineering", detail="Backend Engineer")
+    )
+
+    result = sync_site_master_command(repository=repository, site_adapter=site_adapter)
+
+    assert result.region_count == 1
+    assert result.occupation_count == 1
+    assert repository.list_regions() == [Region(prefecture="Tokyo")]
+    assert repository.list_occupations() == [
+        Occupation(category="Engineering", detail="Backend Engineer")
+    ]
 
 
 def _create_job() -> Job:
