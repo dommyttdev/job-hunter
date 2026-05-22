@@ -4,7 +4,11 @@ from dataclasses import dataclass
 
 import httpx
 
-from job_search_rss.adapters.atgp import AtgpPageFetcher, AtgpSiteAdapter
+from job_search_rss.adapters.atgp import (
+    AtgpPageFetcher,
+    AtgpPlaywrightMasterFetcher,
+    AtgpSiteAdapter,
+)
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.infrastructure.database import (
@@ -172,7 +176,10 @@ def _create_site_adapter_from_settings() -> SiteAdapter:
             "JOB_SEARCH_RSS_ALLOW_EXTERNAL_ACCESS=true to collect from atGP"
         )
         raise RuntimeError(msg)
-    return AtgpSiteAdapter(AtgpPageFetcher(HttpxPageClient()))
+    return AtgpSiteAdapter(
+        AtgpPageFetcher(HttpxPageClient()),
+        master_fetcher=AtgpPlaywrightMasterFetcher(),
+    )
 
 
 def _subscription_condition_from_input(

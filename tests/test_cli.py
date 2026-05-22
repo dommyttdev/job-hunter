@@ -1,7 +1,9 @@
 from pytest import CaptureFixture
 
+from job_search_rss.adapters.atgp import AtgpPlaywrightMasterFetcher, AtgpSiteAdapter
 from job_search_rss.cli import (
     RegisterSubscriptionInput,
+    _create_site_adapter_from_settings,
     main,
     register_subscription_command,
     run_collection_command,
@@ -132,6 +134,17 @@ def test_main_syncs_site_master_from_argv(capsys: CaptureFixture[str]) -> None:
     output = capsys.readouterr().out
     assert "region_count=1" in output
     assert "occupation_count=0" in output
+
+
+def test_create_site_adapter_from_settings_uses_playwright_master_fetcher(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("JOB_SEARCH_RSS_ALLOW_EXTERNAL_ACCESS", "true")
+
+    site_adapter = _create_site_adapter_from_settings()
+
+    assert isinstance(site_adapter, AtgpSiteAdapter)
+    assert isinstance(site_adapter._master_fetcher, AtgpPlaywrightMasterFetcher)
 
 
 def _create_job() -> Job:

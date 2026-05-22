@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from job_search_rss.domain.collection_condition import CollectionCondition
@@ -11,6 +12,67 @@ ATGP_SEARCH_URL = "https://www.atgp.jp/search/top/search_result"
 ATGP_BASE_URL = "https://www.atgp.jp"
 ATGP_OCCUPATION_MASTER_URL = f"{ATGP_SEARCH_URL}?masters=occupations"
 ATGP_DETAIL_URL_TEMPLATE = f"{ATGP_BASE_URL}/search/top/search_result_detail/{{job_id}}"
+_REGION_MASTER_EVALUATE_SCRIPT = """
+(items) => items.map((item) => {
+  const input = item.querySelector(
+    'input[name="prefecture"], input[name="prefectures"], input[name="area"]'
+  ) || item.querySelector('input[type="checkbox"]');
+  const label = labelText(item, input);
+  const cities = Array.from(item.querySelectorAll('.modal-select-grand-child-list__item'))
+    .map((cityItem) => {
+      const cityInput = cityItem.querySelector('input[name="city"]')
+        || cityItem.querySelector('input[type="checkbox"]');
+      return {
+        code: cityInput ? cityInput.value : '',
+        label: labelText(cityItem, cityInput),
+      };
+    })
+    .filter((city) => city.code && city.label);
+  return {
+    code: input ? input.value : '',
+    label,
+    cities,
+  };
+
+  function labelText(root, checkbox) {
+    const label = checkbox && checkbox.id
+      ? root.querySelector(`label[for="${checkbox.id}"]`)
+      : root.querySelector('label');
+    return label ? label.textContent.trim() : '';
+  }
+}).filter((row) => row.code && row.label)
+"""
+_OCCUPATION_MASTER_EVALUATE_SCRIPT = """
+(items) => items.map((item) => {
+  const input = item.querySelector(
+    'input[name="jobCategory"], input[name="job_categories"], input[name="job_categories[]"]'
+  ) || Array.from(item.querySelectorAll('input[type="checkbox"]'))
+    .find((checkbox) => checkbox.name !== 'jobType');
+  const label = labelText(item, input);
+  const children = Array.from(item.querySelectorAll('.modal-select-child-list__item'))
+    .map((childItem) => {
+      const childInput = childItem.querySelector('input[name="jobType"]')
+        || childItem.querySelector('input[type="checkbox"]');
+      return {
+        code: childInput ? childInput.value : '',
+        label: labelText(childItem, childInput),
+      };
+    })
+    .filter((child) => child.code && child.label);
+  return {
+    code: input ? input.value : '',
+    label,
+    children,
+  };
+
+  function labelText(root, checkbox) {
+    const label = checkbox && checkbox.id
+      ? root.querySelector(`label[for="${checkbox.id}"]`)
+      : root.querySelector('label');
+    return label ? label.textContent.trim() : '';
+  }
+}).filter((row) => row.code && row.label)
+"""
 
 
 class PageClient(Protocol):
@@ -19,6 +81,16 @@ class PageClient(Protocol):
 
 class PageFetcher(Protocol):
     def fetch_page(self, url: str) -> str: ...
+
+
+class PlaywrightPage(Protocol):
+    def goto(self, url: str, *, wait_until: str) -> Any: ...
+
+    def locator(self, selector: str) -> Any: ...
+
+
+class PlaywrightMasterPageFactory(Protocol):
+    def __call__(self) -> PlaywrightPage: ...
 
 
 class AtgpFetchError(RuntimeError):
@@ -51,15 +123,59 @@ class AtgpPageFetcher:
             raise AtgpFetchError(msg) from exc
 
 
+class AtgpPlaywrightMasterFetcher:
+    def __init__(
+        self,
+        page_factory: PlaywrightMasterPageFactory | None = None,
+        *,
+        search_url: str = ATGP_SEARCH_URL,
+    ) -> None:
+        self._page_factory = page_factory or _create_playwright_page
+        self._search_url = search_url
+
+    def fetch_region_masters(self) -> list[AtgpRegionMaster]:
+        page = self._page_factory()
+        try:
+            self._open_detail_search(page)
+            _click(page, _detail_list_link_selector("エリア・駅"))
+            _click_all(page, ".modal-select-child-list__toggle")
+            rows = page.locator(".modal-select-child-list__item").evaluate_all(
+                _REGION_MASTER_EVALUATE_SCRIPT
+            )
+            return _region_masters_from_playwright_rows(rows)
+        finally:
+            _close_playwright_resources(page)
+
+    def fetch_occupation_masters(self) -> list[AtgpOccupationMaster]:
+        page = self._page_factory()
+        try:
+            self._open_detail_search(page)
+            _click(page, _detail_list_link_selector("職種"))
+            _click_all(page, ".modal-select-list__toggle")
+            rows = page.locator(".modal-select-list__item").evaluate_all(
+                _OCCUPATION_MASTER_EVALUATE_SCRIPT
+            )
+            return _occupation_masters_from_playwright_rows(rows)
+        finally:
+            _close_playwright_resources(page)
+
+    def _open_detail_search(self, page: PlaywrightPage) -> None:
+        page.goto(self._search_url, wait_until="domcontentloaded")
+        _click(page, "button.c-button.c-button--white.is-change[type='button']")
+        page.locator(".modal-box .modal-heading .title").wait_for()
+
+
 class AtgpSiteAdapter:
     def __init__(
         self,
         fetcher: PageFetcher,
         *,
+        master_fetcher: AtgpPlaywrightMasterFetcher | None = None,
         region_master_url: str = ATGP_SEARCH_URL,
         occupation_master_url: str = ATGP_OCCUPATION_MASTER_URL,
     ) -> None:
         self._fetcher = fetcher
+        self._master_fetcher = master_fetcher
         self._region_master_url = region_master_url
         self._occupation_master_url = occupation_master_url
         self._region_masters: list[AtgpRegionMaster] | None = None
@@ -105,17 +221,143 @@ class AtgpSiteAdapter:
 
     def _load_region_masters(self) -> list[AtgpRegionMaster]:
         if self._region_masters is None:
-            self._region_masters = parse_region_master(
-                self._fetcher.fetch_page(self._region_master_url)
-            )
+            if self._master_fetcher is None:
+                self._region_masters = parse_region_master(
+                    self._fetcher.fetch_page(self._region_master_url)
+                )
+            else:
+                self._region_masters = self._master_fetcher.fetch_region_masters()
         return self._region_masters
 
     def _load_occupation_masters(self) -> list[AtgpOccupationMaster]:
         if self._occupation_masters is None:
-            self._occupation_masters = parse_occupation_master(
-                self._fetcher.fetch_page(self._occupation_master_url)
-            )
+            if self._master_fetcher is None:
+                self._occupation_masters = parse_occupation_master(
+                    self._fetcher.fetch_page(self._occupation_master_url)
+                )
+            else:
+                self._occupation_masters = self._master_fetcher.fetch_occupation_masters()
         return self._occupation_masters
+
+
+def _create_playwright_page() -> PlaywrightPage:
+    from playwright.sync_api import sync_playwright
+
+    playwright = sync_playwright().start()
+    browser = playwright.chromium.launch(headless=True)
+    context = browser.new_context(locale="ja-JP")
+    page = context.new_page()
+    return _OwnedPlaywrightPage(
+        page=page,
+        close_callbacks=[context.close, browser.close, playwright.stop],
+    )
+
+
+class _OwnedPlaywrightPage:
+    def __init__(self, *, page: Any, close_callbacks: list[Callable[[], None]]) -> None:
+        self._page = page
+        self._close_callbacks = close_callbacks
+
+    def goto(self, url: str, *, wait_until: str) -> Any:
+        return self._page.goto(url, wait_until=wait_until)
+
+    def locator(self, selector: str) -> Any:
+        return self._page.locator(selector)
+
+    def close_resources(self) -> None:
+        for close_callback in self._close_callbacks:
+            close_callback()
+
+
+def _click(page: PlaywrightPage, selector: str) -> None:
+    locator = page.locator(selector)
+    first = getattr(locator, "first", None)
+    if callable(first):
+        first().click()
+        return
+    if first is not None:
+        first.click()
+        return
+
+    locator.click()
+
+
+def _click_all(page: PlaywrightPage, selector: str) -> None:
+    locator = page.locator(selector)
+    count = getattr(locator, "count", None)
+    nth = getattr(locator, "nth", None)
+    if not callable(count) or not callable(nth):
+        locator.click()
+        return
+
+    for index in range(count()):
+        nth(index).click()
+
+
+def _close_playwright_resources(page: PlaywrightPage) -> None:
+    close_resources = getattr(page, "close_resources", None)
+    if callable(close_resources):
+        close_resources()
+
+
+def _detail_list_link_selector(label: str) -> str:
+    return f".detail-list__item:has(.detail-list__container__h:text('{label}')) .detail-list__link"
+
+
+def _region_masters_from_playwright_rows(rows: object) -> list[AtgpRegionMaster]:
+    masters: list[AtgpRegionMaster] = []
+    for row in _object_list(rows):
+        code = _string_from_mapping(row, "code")
+        label = _string_from_mapping(row, "label")
+        if code and label:
+            masters.append(AtgpRegionMaster(code=code, region=Region(prefecture=label)))
+
+        for city in _object_list(row.get("cities")):
+            city_code = _string_from_mapping(city, "code")
+            city_label = _string_from_mapping(city, "label")
+            if city_code and label and city_label:
+                masters.append(
+                    AtgpRegionMaster(
+                        code=city_code,
+                        region=Region(prefecture=label, city=city_label),
+                    )
+                )
+    return masters
+
+
+def _occupation_masters_from_playwright_rows(rows: object) -> list[AtgpOccupationMaster]:
+    masters: list[AtgpOccupationMaster] = []
+    for row in _object_list(rows):
+        category_code = _string_from_mapping(row, "code")
+        category_label = _string_from_mapping(row, "label")
+        for child in _object_list(row.get("children")):
+            type_code = _string_from_mapping(child, "code")
+            detail_label = _string_from_mapping(child, "label")
+            if category_code and category_label and type_code and detail_label:
+                masters.append(
+                    AtgpOccupationMaster(
+                        category_code=category_code,
+                        type_codes=(type_code,),
+                        occupation=Occupation(
+                            category=category_label,
+                            detail=detail_label,
+                        ),
+                    )
+                )
+    return masters
+
+
+def _object_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _string_from_mapping(mapping: dict[str, Any], key: str) -> str:
+    value = mapping.get(key)
+    if not isinstance(value, str):
+        return ""
+    return _normalize_text(value)
 
 
 def parse_region_master(html: str) -> list[AtgpRegionMaster]:
