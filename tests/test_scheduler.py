@@ -6,7 +6,11 @@ from tests.fakes.site_adapter import FakeSiteAdapter
 from job_search_rss.domain.condition_values import Region
 from job_search_rss.domain.job import Job
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
-from job_search_rss.scheduler import ScheduledJobResult, register_periodic_collection_job
+from job_search_rss.scheduler import (
+    ApschedulerIntervalScheduler,
+    ScheduledJobResult,
+    register_periodic_collection_job,
+)
 from job_search_rss.usecase.register_subscription_condition import (
     RegisterSubscriptionCondition,
 )
@@ -24,6 +28,23 @@ class FakeScheduler:
         job_id: str,
     ) -> None:
         self.jobs.append((func, minutes, job_id))
+
+
+class RecordingApscheduler:
+    def __init__(self) -> None:
+        self.jobs: list[tuple[Callable[[], ScheduledJobResult], str, int, str, bool]] = []
+
+    def add_job(
+        self,
+        func: Callable[[], ScheduledJobResult],
+        trigger: str,
+        *,
+        minutes: int,
+        id: str,
+        replace_existing: bool,
+    ) -> object:
+        self.jobs.append((func, trigger, minutes, id, replace_existing))
+        return object()
 
 
 def test_register_periodic_collection_job_collects_registered_conditions() -> None:
@@ -50,6 +71,27 @@ def test_register_periodic_collection_job_collects_registered_conditions() -> No
     assert job_id == "job-search-rss-collection"
     assert result.change_count == 1
     assert result.failed_condition_count == 0
+
+
+def test_apscheduler_interval_scheduler_registers_interval_job() -> None:
+    scheduler = RecordingApscheduler()
+    adapter = ApschedulerIntervalScheduler(scheduler)
+
+    adapter.add_interval_job(
+        lambda: ScheduledJobResult(
+            change_count=0,
+            succeeded_condition_count=0,
+            failed_condition_count=0,
+        ),
+        minutes=30,
+        job_id="job-search-rss-collection",
+    )
+
+    _, trigger, minutes, job_id, replace_existing = scheduler.jobs[0]
+    assert trigger == "interval"
+    assert minutes == 30
+    assert job_id == "job-search-rss-collection"
+    assert replace_existing is True
 
 
 def _create_job() -> Job:

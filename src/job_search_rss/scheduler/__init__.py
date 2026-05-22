@@ -26,6 +26,38 @@ class IntervalScheduler(Protocol):
     ) -> None: ...
 
 
+class ApschedulerLike(Protocol):
+    def add_job(
+        self,
+        func: Callable[[], ScheduledJobResult],
+        trigger: str,
+        *,
+        minutes: int,
+        id: str,
+        replace_existing: bool,
+    ) -> object: ...
+
+
+class ApschedulerIntervalScheduler:
+    def __init__(self, scheduler: ApschedulerLike) -> None:
+        self._scheduler = scheduler
+
+    def add_interval_job(
+        self,
+        func: Callable[[], ScheduledJobResult],
+        *,
+        minutes: int,
+        job_id: str,
+    ) -> None:
+        self._scheduler.add_job(
+            func,
+            "interval",
+            minutes=minutes,
+            id=job_id,
+            replace_existing=True,
+        )
+
+
 def register_periodic_collection_job(
     scheduler: IntervalScheduler,
     *,
