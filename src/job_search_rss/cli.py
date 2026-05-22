@@ -2,6 +2,9 @@ import argparse
 from dataclasses import dataclass
 from typing import Sequence
 
+import httpx
+
+from job_search_rss.adapters.atgp import AtgpPageFetcher, AtgpSiteAdapter
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.infrastructure.database import (
@@ -71,7 +74,8 @@ def run_collection_command(
 def main(
     argv: Sequence[str] | None = None,
     *,
-    repository: SubscriptionConditionRepository | None = None,
+    repository: Repository | None = None,
+    site_adapter: SiteAdapter | None = None,
 ) -> int:
     args = _build_parser().parse_args(argv)
     command_repository = repository or _create_repository_from_settings()
@@ -90,6 +94,15 @@ def main(
             print(f"subscription_id={result.subscription_id}")
             print(f"rss_path={result.rss_path}")
             return 0
+        case "collect":
+            result = run_collection_command(
+                repository=command_repository,
+                site_adapter=site_adapter or _create_site_adapter_from_settings(),
+            )
+            print(f"change_count={result.change_count}")
+            print(f"succeeded_condition_count={result.succeeded_condition_count}")
+            print(f"failed_condition_count={result.failed_condition_count}")
+            return 0
         case _:
             raise AssertionError(f"unsupported command: {args.command}")
 
@@ -103,16 +116,35 @@ def _build_parser() -> argparse.ArgumentParser:
     subscribe.add_argument("--city")
     subscribe.add_argument("--occupation-category")
     subscribe.add_argument("--occupation-detail")
+    subparsers.add_parser("collect")
 
     return parser
 
 
-def _create_repository_from_settings() -> SubscriptionConditionRepository:
+class HttpxPageClient:
+    def get_text(self, url: str, *, timeout_seconds: float) -> str:
+        response = httpx.get(url, timeout=timeout_seconds)
+        response.raise_for_status()
+        return response.text
+
+
+def _create_repository_from_settings() -> Repository:
     settings = load_settings()
     settings.db_path.parent.mkdir(parents=True, exist_ok=True)
     engine = create_sqlite_engine(f"sqlite:///{settings.db_path.as_posix()}")
     create_schema(engine)
     return SqlAlchemyRepository(engine)
+
+
+def _create_site_adapter_from_settings() -> SiteAdapter:
+    settings = load_settings()
+    if not settings.allow_external_access:
+        msg = (
+            "external access is disabled; set "
+            "JOB_SEARCH_RSS_ALLOW_EXTERNAL_ACCESS=true to collect from atGP"
+        )
+        raise RuntimeError(msg)
+    return AtgpSiteAdapter(AtgpPageFetcher(HttpxPageClient()))
 
 
 def _subscription_condition_from_input(

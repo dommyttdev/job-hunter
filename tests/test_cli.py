@@ -85,6 +85,23 @@ def test_run_collection_command_collects_registered_conditions() -> None:
     assert site_adapter.call_count == 1
 
 
+def test_main_runs_collection_from_argv(capsys: CaptureFixture[str]) -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    RegisterSubscriptionCondition(repository).execute(
+        SubscriptionCondition(region=Region(prefecture="Tokyo"))
+    )
+    collection_condition = ManageCollectionCondition(repository).execute()[0]
+    site_adapter.add_job_for_condition(collection_condition, _create_job())
+
+    exit_code = main(["collect"], repository=repository, site_adapter=site_adapter)
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "change_count=1" in output
+    assert "succeeded_condition_count=1" in output
+
+
 def _create_job() -> Job:
     return Job(
         job_id="atgp-001",
