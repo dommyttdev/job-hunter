@@ -24,3 +24,16 @@ Use this checklist only when manually confirming the live adapter behavior.
 7. If structure changed, capture a new minimal fixture under
    `tests/fixtures/atgp/` and update parser tests before changing production
    code.
+
+## Latest Result
+
+Checked on 2026-05-22.
+
+- `https://www.atgp.jp/search/top/search_result` returned HTTP 200.
+- Raw HTML still contains `prefectures=`, `job_categories=`, and
+  `search_result_detail`.
+- `https://www.atgp.jp/search/top/search_result?prefectures=13` returned
+  HTTP 200 and included at least one detail link.
+- One live detail page returned HTTP 200:
+  `https://www.atgp.jp/search/top/search_result_detail/a076000000010rrp28`.
+- The detail page still contained occupation-related content.
