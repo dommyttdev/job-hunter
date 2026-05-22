@@ -121,6 +121,19 @@ def test_sync_site_master_command_saves_regions_and_occupations() -> None:
     ]
 
 
+def test_main_syncs_site_master_from_argv(capsys: CaptureFixture[str]) -> None:
+    repository = FakeRepository()
+    site_adapter = FakeSiteAdapter()
+    site_adapter.add_region(Region(prefecture="Tokyo"))
+
+    exit_code = main(["sync-master"], repository=repository, site_adapter=site_adapter)
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "region_count=1" in output
+    assert "occupation_count=0" in output
+
+
 def _create_job() -> Job:
     return Job(
         job_id="atgp-001",

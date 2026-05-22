@@ -122,6 +122,14 @@ def main(
             print(f"succeeded_condition_count={result.succeeded_condition_count}")
             print(f"failed_condition_count={result.failed_condition_count}")
             return 0
+        case "sync-master":
+            result = sync_site_master_command(
+                repository=command_repository,
+                site_adapter=site_adapter or _create_site_adapter_from_settings(),
+            )
+            print(f"region_count={result.region_count}")
+            print(f"occupation_count={result.occupation_count}")
+            return 0
         case _:
             raise AssertionError(f"unsupported command: {args.command}")
 
@@ -136,6 +144,7 @@ def _build_parser() -> argparse.ArgumentParser:
     subscribe.add_argument("--occupation-category")
     subscribe.add_argument("--occupation-detail")
     subparsers.add_parser("collect")
+    subparsers.add_parser("sync-master")
 
     return parser
 
