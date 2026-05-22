@@ -10,10 +10,14 @@ from job_search_rss.infrastructure.database import (
     create_sqlite_engine,
 )
 from job_search_rss.infrastructure.settings import load_settings
+from job_search_rss.ports.repository import Repository
+from job_search_rss.ports.site_adapter import SiteAdapter
+from job_search_rss.usecase.manage_collection_condition import ManageCollectionCondition
 from job_search_rss.usecase.register_subscription_condition import (
     RegisterSubscriptionCondition,
     SubscriptionConditionRepository,
 )
+from job_search_rss.usecase.run_collection import RunCollection
 
 
 @dataclass(frozen=True)
@@ -30,6 +34,13 @@ class RegisterSubscriptionCommandResult:
     rss_path: str
 
 
+@dataclass(frozen=True)
+class RunCollectionCommandResult:
+    change_count: int
+    succeeded_condition_count: int
+    failed_condition_count: int
+
+
 def register_subscription_command(
     command_input: RegisterSubscriptionInput,
     *,
@@ -40,6 +51,20 @@ def register_subscription_command(
     return RegisterSubscriptionCommandResult(
         subscription_id=registered.id,
         rss_path=f"/rss/{registered.id}",
+    )
+
+
+def run_collection_command(
+    *,
+    repository: Repository,
+    site_adapter: SiteAdapter,
+) -> RunCollectionCommandResult:
+    ManageCollectionCondition(repository).execute()
+    result = RunCollection(repository, site_adapter).execute()
+    return RunCollectionCommandResult(
+        change_count=len(result.changes),
+        succeeded_condition_count=len(result.succeeded_condition_keys),
+        failed_condition_count=len(result.failed_condition_keys),
     )
 
 
