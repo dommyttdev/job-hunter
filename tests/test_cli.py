@@ -1,6 +1,4 @@
 from pytest import CaptureFixture
-from tests.fakes.repository import FakeRepository
-from tests.fakes.site_adapter import FakeSiteAdapter
 
 from job_search_rss.cli import (
     RegisterSubscriptionInput,
@@ -16,6 +14,8 @@ from job_search_rss.usecase.manage_collection_condition import ManageCollectionC
 from job_search_rss.usecase.register_subscription_condition import (
     RegisterSubscriptionCondition,
 )
+from tests.fakes.repository import FakeRepository
+from tests.fakes.site_adapter import FakeSiteAdapter
 
 
 def test_register_subscription_command_registers_condition_without_http() -> None:

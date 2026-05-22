@@ -1,8 +1,5 @@
 from collections.abc import Callable
 
-from tests.fakes.repository import FakeRepository
-from tests.fakes.site_adapter import FakeSiteAdapter
-
 from job_search_rss.domain.condition_values import Region
 from job_search_rss.domain.job import Job
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
@@ -14,6 +11,8 @@ from job_search_rss.scheduler import (
 from job_search_rss.usecase.register_subscription_condition import (
     RegisterSubscriptionCondition,
 )
+from tests.fakes.repository import FakeRepository
+from tests.fakes.site_adapter import FakeSiteAdapter
 
 
 class FakeScheduler:
