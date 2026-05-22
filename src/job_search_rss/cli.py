@@ -268,13 +268,14 @@ def _subscription_condition_from_input(
         region = Region(prefecture=command_input.prefecture, city=command_input.city)
 
     occupation = None
-    if (
-        command_input.occupation_category is not None
-        and command_input.occupation_detail is not None
-    ):
+    if command_input.occupation_detail is not None and command_input.occupation_category is None:
+        msg = "--occupation-category is required when --occupation-detail is provided"
+        raise ValueError(msg)
+    if command_input.occupation_category is not None:
+        occupation_detail = command_input.occupation_detail or command_input.occupation_category
         occupation = Occupation(
             category=command_input.occupation_category,
-            detail=command_input.occupation_detail,
+            detail=occupation_detail,
         )
 
     return SubscriptionCondition(region=region, occupation=occupation)

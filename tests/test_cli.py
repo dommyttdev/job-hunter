@@ -1,5 +1,6 @@
 # pyright: reportPrivateUsage=false
 
+import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
 from job_search_rss.adapters.atgp import AtgpPlaywrightMasterFetcher, AtgpSiteAdapter
@@ -48,6 +49,43 @@ def test_register_subscription_command_registers_condition_without_http() -> Non
     assert [
         condition.normalized_key for condition in repository.list_subscription_conditions()
     ] == ["subscription:region:tokyo:shibuya|occupation:engineering:backend-engineer"]
+
+
+def test_register_subscription_command_accepts_occupation_category_only() -> None:
+    repository = FakeRepository()
+
+    result = register_subscription_command(
+        RegisterSubscriptionInput(
+            prefecture="福岡県",
+            occupation_category="IT・エンジニア関連",
+        ),
+        repository=repository,
+    )
+
+    assert result.subscription_id == (
+        "subscription:region:福岡県|occupation:it・エンジニア関連:it・エンジニア関連"
+    )
+    assert [
+        condition.normalized_key for condition in repository.list_subscription_conditions()
+    ] == [
+        "subscription:region:福岡県|occupation:it・エンジニア関連:it・エンジニア関連"
+    ]
+
+
+def test_register_subscription_command_rejects_occupation_detail_only() -> None:
+    repository = FakeRepository()
+
+    with pytest.raises(
+        ValueError,
+        match="--occupation-category is required",
+    ):
+        register_subscription_command(
+            RegisterSubscriptionInput(
+                prefecture="福岡県",
+                occupation_detail="Webエンジニア",
+            ),
+            repository=repository,
+        )
 
 
 def test_main_registers_subscription_from_argv(
