@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 
 ATGP_SEARCH_URL = "https://www.atgp.jp/search/top/search_result"
 ATGP_BASE_URL = "https://www.atgp.jp"
@@ -93,21 +96,48 @@ class PlaywrightMasterPageFactory(Protocol):
     def __call__(self) -> PlaywrightPage: ...
 
 
+class AtgpMasterFetcher(Protocol):
+    def fetch_region_masters(self) -> list[AtgpRegionMaster]: ...
+
+    def fetch_occupation_masters(self) -> list[AtgpOccupationMaster]: ...
+
+
 class AtgpFetchError(RuntimeError):
     pass
 
 
 @dataclass(frozen=True)
 class AtgpRegionMaster:
-    code: str
+    prefecture_code: str | None
+    city_code: str | None
     region: Region
 
 
 @dataclass(frozen=True)
 class AtgpOccupationMaster:
-    category_code: str
-    type_codes: tuple[str, ...]
+    job_category_code: str | None
+    job_type_codes: tuple[str, ...]
     occupation: Occupation
+
+
+@dataclass(frozen=True)
+class AtgpSearchParameters:
+    job_category_codes: tuple[str, ...] = ()
+    job_type_codes: tuple[str, ...] = ()
+    city_codes: tuple[str, ...] = ()
+    prefecture_codes: tuple[str, ...] = ()
+
+    def to_query(self) -> dict[str, str]:
+        query: dict[str, str] = {}
+        if self.job_category_codes:
+            query["job_categories"] = ",".join(self.job_category_codes)
+        if self.job_type_codes:
+            query["job_types"] = ",".join(self.job_type_codes)
+        if self.city_codes:
+            query["cities"] = ",".join(self.city_codes)
+        if self.prefecture_codes:
+            query["prefectures"] = ",".join(self.prefecture_codes)
+        return query
 
 
 class AtgpPageFetcher:
@@ -170,7 +200,7 @@ class AtgpSiteAdapter:
         self,
         fetcher: PageFetcher,
         *,
-        master_fetcher: AtgpPlaywrightMasterFetcher | None = None,
+        master_fetcher: AtgpMasterFetcher | None = None,
         region_master_url: str = ATGP_SEARCH_URL,
         occupation_master_url: str = ATGP_OCCUPATION_MASTER_URL,
     ) -> None:
@@ -192,6 +222,28 @@ class AtgpSiteAdapter:
 
     def list_occupations(self) -> list[Occupation]:
         return [master.occupation for master in self._load_occupation_masters()]
+
+    def list_site_region_masters(self) -> list[SiteRegionMaster]:
+        return [
+            SiteRegionMaster(
+                site_id="atgp",
+                prefecture_code=master.prefecture_code,
+                city_code=master.city_code,
+                region=master.region,
+            )
+            for master in self._load_region_masters()
+        ]
+
+    def list_site_occupation_masters(self) -> list[SiteOccupationMaster]:
+        return [
+            SiteOccupationMaster(
+                site_id="atgp",
+                job_category_code=master.job_category_code,
+                job_type_codes=master.job_type_codes,
+                occupation=master.occupation,
+            )
+            for master in self._load_occupation_masters()
+        ]
 
     def add_job_for_condition(self, condition: CollectionCondition, job: Job) -> None:
         raise NotImplementedError("atGP adapter reads jobs from atGP pages")
@@ -273,7 +325,7 @@ def _click(page: PlaywrightPage, selector: str) -> None:
     locator = page.locator(selector)
     first = getattr(locator, "first", None)
     if callable(first):
-        first().click()
+        cast(Any, first()).click()
         return
     if first is not None:
         first.click()
@@ -290,8 +342,8 @@ def _click_all(page: PlaywrightPage, selector: str) -> None:
         locator.click()
         return
 
-    for index in range(count()):
-        nth(index).click()
+    for index in range(cast(int, count())):
+        cast(Any, nth(index)).click()
 
 
 def _close_playwright_resources(page: PlaywrightPage) -> None:
@@ -310,7 +362,13 @@ def _region_masters_from_playwright_rows(rows: object) -> list[AtgpRegionMaster]
         code = _string_from_mapping(row, "code")
         label = _string_from_mapping(row, "label")
         if code and label:
-            masters.append(AtgpRegionMaster(code=code, region=Region(prefecture=label)))
+            masters.append(
+                AtgpRegionMaster(
+                    prefecture_code=code,
+                    city_code=None,
+                    region=Region(prefecture=label),
+                )
+            )
 
         for city in _object_list(row.get("cities")):
             city_code = _string_from_mapping(city, "code")
@@ -318,7 +376,8 @@ def _region_masters_from_playwright_rows(rows: object) -> list[AtgpRegionMaster]
             if city_code and label and city_label:
                 masters.append(
                     AtgpRegionMaster(
-                        code=city_code,
+                        prefecture_code=code,
+                        city_code=city_code,
                         region=Region(prefecture=label, city=city_label),
                     )
                 )
@@ -336,8 +395,8 @@ def _occupation_masters_from_playwright_rows(rows: object) -> list[AtgpOccupatio
             if category_code and category_label and type_code and detail_label:
                 masters.append(
                     AtgpOccupationMaster(
-                        category_code=category_code,
-                        type_codes=(type_code,),
+                        job_category_code=category_code,
+                        job_type_codes=(type_code,),
                         occupation=Occupation(
                             category=category_label,
                             detail=detail_label,
@@ -350,7 +409,11 @@ def _occupation_masters_from_playwright_rows(rows: object) -> list[AtgpOccupatio
 def _object_list(value: object) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
-    return [item for item in value if isinstance(item, dict)]
+    items: list[dict[str, Any]] = []
+    for item in cast(list[object], value):
+        if isinstance(item, dict):
+            items.append(cast(dict[str, Any], item))
+    return items
 
 
 def _string_from_mapping(mapping: dict[str, Any], key: str) -> str:
@@ -365,15 +428,21 @@ def parse_region_master(html: str) -> list[AtgpRegionMaster]:
     regions: list[AtgpRegionMaster] = []
 
     for anchor in anchors:
-        code = _first_query_value(anchor.href, "prefectures")
-        if code is None:
+        prefecture_code = _first_query_value(anchor.href, "prefectures")
+        if prefecture_code is None:
             continue
 
         label = _clean_condition_label(anchor.text)
         if not label:
             continue
 
-        regions.append(AtgpRegionMaster(code=code, region=Region(prefecture=label)))
+        regions.append(
+            AtgpRegionMaster(
+                prefecture_code=prefecture_code,
+                city_code=None,
+                region=Region(prefecture=label),
+            )
+        )
 
     return regions
 
@@ -393,8 +462,8 @@ def parse_occupation_master(html: str) -> list[AtgpOccupationMaster]:
 
         occupations.append(
             AtgpOccupationMaster(
-                category_code=category_code,
-                type_codes=tuple(_split_query_values(anchor.href, "job_types")),
+                job_category_code=category_code,
+                job_type_codes=tuple(_split_query_values(anchor.href, "job_types")),
                 occupation=Occupation(category=label, detail=label),
             )
         )
@@ -408,25 +477,86 @@ def build_search_url(
     region_masters: list[AtgpRegionMaster],
     occupation_masters: list[AtgpOccupationMaster],
 ) -> str:
-    query: dict[str, str] = {}
+    prefecture_codes: list[str] = []
+    city_codes: list[str] = []
+    job_category_codes: list[str] = []
+    job_type_codes: list[str] = []
     condition_keys = _split_condition_key(condition.condition_key)
 
     region_key = _find_condition_key(condition_keys, "region:")
     if region_key is not None:
-        query["prefectures"] = _region_code_for_key(region_key, region_masters)
+        region = _region_for_key(region_key, region_masters)
+        if region.prefecture_code is not None:
+            prefecture_codes.append(region.prefecture_code)
+        if region.city_code is not None:
+            city_codes.append(region.city_code)
 
     occupation_key = _find_condition_key(condition_keys, "occupation:")
     if occupation_key is not None:
         occupation = _occupation_for_key(occupation_key, occupation_masters)
-        query["job_categories"] = occupation.category_code
-        if occupation.type_codes:
-            query["job_types"] = ",".join(occupation.type_codes)
+        if occupation.job_category_code is not None:
+            job_category_codes.append(occupation.job_category_code)
+        if occupation.job_type_codes:
+            job_type_codes.extend(occupation.job_type_codes)
 
+    query = AtgpSearchParameters(
+        job_category_codes=tuple(job_category_codes),
+        job_type_codes=tuple(job_type_codes),
+        city_codes=tuple(city_codes),
+        prefecture_codes=tuple(prefecture_codes),
+    ).to_query()
     if not query:
         msg = "atGP search condition requires region or occupation"
         raise ValueError(msg)
 
+    return _build_search_url_from_query(query)
+
+
+def build_search_url_from_parameters(parameters: AtgpSearchParameters) -> str:
+    query = parameters.to_query()
+    if not query:
+        msg = "atGP search parameters require at least one code"
+        raise ValueError(msg)
+    return _build_search_url_from_query(query)
+
+
+def _build_search_url_from_query(query: dict[str, str]) -> str:
     return f"{ATGP_SEARCH_URL}?{urlencode(query)}"
+
+
+def build_search_url_from_site_masters(
+    condition: CollectionCondition,
+    *,
+    region_masters: list[SiteRegionMaster],
+    occupation_masters: list[SiteOccupationMaster],
+) -> str:
+    if condition.site_id != "atgp":
+        msg = f"atGP search URL cannot be built for site: {condition.site_id}"
+        raise ValueError(msg)
+
+    atgp_regions = [
+        AtgpRegionMaster(
+            prefecture_code=master.prefecture_code,
+            city_code=master.city_code,
+            region=master.region,
+        )
+        for master in region_masters
+        if master.site_id == "atgp"
+    ]
+    atgp_occupations = [
+        AtgpOccupationMaster(
+            job_category_code=master.job_category_code,
+            job_type_codes=master.job_type_codes,
+            occupation=master.occupation,
+        )
+        for master in occupation_masters
+        if master.site_id == "atgp"
+    ]
+    return build_search_url(
+        condition,
+        region_masters=atgp_regions,
+        occupation_masters=atgp_occupations,
+    )
 
 
 def parse_job_list(html: str) -> list[Job]:
@@ -901,10 +1031,13 @@ def _find_condition_key(condition_keys: list[str], prefix: str) -> str | None:
     return next((key for key in condition_keys if key.startswith(prefix)), None)
 
 
-def _region_code_for_key(region_key: str, masters: list[AtgpRegionMaster]) -> str:
+def _region_for_key(
+    region_key: str,
+    masters: list[AtgpRegionMaster],
+) -> AtgpRegionMaster:
     for master in masters:
         if master.region.normalized_key == region_key:
-            return master.code
+            return master
 
     msg = f"Unknown atGP region: {region_key}"
     raise ValueError(msg)

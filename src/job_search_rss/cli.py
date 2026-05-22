@@ -53,6 +53,8 @@ class RunCollectionCommandResult:
 class SyncSiteMasterCommandResult:
     region_count: int
     occupation_count: int
+    site_region_count: int
+    site_occupation_count: int
 
 
 def register_subscription_command(
@@ -91,6 +93,8 @@ def sync_site_master_command(
     return SyncSiteMasterCommandResult(
         region_count=result.region_count,
         occupation_count=result.occupation_count,
+        site_region_count=result.site_region_count,
+        site_occupation_count=result.site_occupation_count,
     )
 
 
@@ -133,6 +137,8 @@ def main(
             )
             print(f"region_count={result.region_count}")
             print(f"occupation_count={result.occupation_count}")
+            print(f"site_region_count={result.site_region_count}")
+            print(f"site_occupation_count={result.site_occupation_count}")
             return 0
         case _:
             raise AssertionError(f"unsupported command: {args.command}")

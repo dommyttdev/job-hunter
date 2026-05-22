@@ -1,4 +1,6 @@
-from pytest import CaptureFixture
+# pyright: reportPrivateUsage=false
+
+from pytest import CaptureFixture, MonkeyPatch
 
 from job_search_rss.adapters.atgp import AtgpPlaywrightMasterFetcher, AtgpSiteAdapter
 from job_search_rss.cli import (
@@ -137,7 +139,7 @@ def test_main_syncs_site_master_from_argv(capsys: CaptureFixture[str]) -> None:
 
 
 def test_create_site_adapter_from_settings_uses_playwright_master_fetcher(
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JOB_SEARCH_RSS_ALLOW_EXTERNAL_ACCESS", "true")
 

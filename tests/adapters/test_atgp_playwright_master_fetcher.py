@@ -47,11 +47,31 @@ def test_playwright_master_fetcher_collects_prefectures_and_cities_from_modal() 
         ".modal-select-child-list__toggle",
     ]
     assert regions == [
-        AtgpRegionMaster(code="1", region=Region(prefecture="北海道")),
-        AtgpRegionMaster(code="1101", region=Region(prefecture="北海道", city="札幌市中央区")),
-        AtgpRegionMaster(code="1102", region=Region(prefecture="北海道", city="札幌市北区")),
-        AtgpRegionMaster(code="13", region=Region(prefecture="東京都")),
-        AtgpRegionMaster(code="13101", region=Region(prefecture="東京都", city="千代田区")),
+        AtgpRegionMaster(
+            prefecture_code="1",
+            city_code=None,
+            region=Region(prefecture="北海道"),
+        ),
+        AtgpRegionMaster(
+            prefecture_code="1",
+            city_code="1101",
+            region=Region(prefecture="北海道", city="札幌市中央区"),
+        ),
+        AtgpRegionMaster(
+            prefecture_code="1",
+            city_code="1102",
+            region=Region(prefecture="北海道", city="札幌市北区"),
+        ),
+        AtgpRegionMaster(
+            prefecture_code="13",
+            city_code=None,
+            region=Region(prefecture="東京都"),
+        ),
+        AtgpRegionMaster(
+            prefecture_code="13",
+            city_code="13101",
+            region=Region(prefecture="東京都", city="千代田区"),
+        ),
     ]
 
 
@@ -94,18 +114,18 @@ def test_playwright_master_fetcher_collects_occupation_categories_and_details_fr
     ]
     assert occupations == [
         AtgpOccupationMaster(
-            category_code="b01001610000003000",
-            type_codes=("b01001630000001000",),
+            job_category_code="b01001610000003000",
+            job_type_codes=("b01001630000001000",),
             occupation=Occupation(category="IT・エンジニア", detail="社内SE"),
         ),
         AtgpOccupationMaster(
-            category_code="b01001610000003000",
-            type_codes=("b01001630000002000",),
+            job_category_code="b01001610000003000",
+            job_type_codes=("b01001630000002000",),
             occupation=Occupation(category="IT・エンジニア", detail="Webエンジニア"),
         ),
         AtgpOccupationMaster(
-            category_code="b01001610000004000",
-            type_codes=("b01001640000001000",),
+            job_category_code="b01001610000004000",
+            job_type_codes=("b01001640000001000",),
             occupation=Occupation(category="事務関連", detail="一般事務"),
         ),
     ]

@@ -7,6 +7,7 @@ from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.history import CollectionRun, JobChange, JobChangeType
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.infrastructure.database import SqlAlchemyRepository, create_schema
 from job_search_rss.ports.repository import Repository
@@ -49,6 +50,18 @@ def test_sqlalchemy_repository_stores_domain_objects() -> None:
     )
     region = Region(prefecture="Tokyo", city="Shibuya")
     occupation = Occupation(category="Engineering", detail="Web")
+    site_region_master = SiteRegionMaster(
+        site_id="atgp",
+        prefecture_code="13",
+        city_code="13113",
+        region=region,
+    )
+    site_occupation_master = SiteOccupationMaster(
+        site_id="atgp",
+        job_category_code="1",
+        job_type_codes=("10", "11"),
+        occupation=occupation,
+    )
     run = CollectionRun.succeeded(
         collection_condition_key=collection_condition.normalized_key,
         started_at=occurred_at,
@@ -58,6 +71,8 @@ def test_sqlalchemy_repository_stores_domain_objects() -> None:
 
     repository.save_region(region)
     repository.save_occupation(occupation)
+    repository.save_site_region_master(site_region_master)
+    repository.save_site_occupation_master(site_occupation_master)
     repository.save_job(job)
     repository.save_job_change(change)
     repository.save_subscription_condition(subscription_condition)
@@ -70,6 +85,14 @@ def test_sqlalchemy_repository_stores_domain_objects() -> None:
 
     assert repository.list_regions() == [region]
     assert repository.list_occupations() == [occupation]
+    assert repository.list_site_region_masters() == [site_region_master]
+    assert repository.list_site_region_masters(site_id="atgp") == [site_region_master]
+    assert repository.list_site_region_masters(site_id="other") == []
+    assert repository.list_site_occupation_masters() == [site_occupation_master]
+    assert repository.list_site_occupation_masters(site_id="atgp") == [
+        site_occupation_master
+    ]
+    assert repository.list_site_occupation_masters(site_id="other") == []
     assert repository.list_jobs() == [job]
     assert repository.list_job_changes() == [change]
     assert repository.list_subscription_conditions() == [subscription_condition]

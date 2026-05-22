@@ -1,6 +1,7 @@
 from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 from tests.fakes.types import JobData
 
 
@@ -44,11 +45,33 @@ class FakeSiteAdapter:
     def list_regions(self) -> list[Region]:
         return list(self._regions)
 
+    def list_site_region_masters(self) -> list[SiteRegionMaster]:
+        return [
+            SiteRegionMaster(
+                site_id="fake",
+                prefecture_code=str(index),
+                city_code=None,
+                region=region,
+            )
+            for index, region in enumerate(self._regions, start=1)
+        ]
+
     def add_occupation(self, occupation: Occupation) -> None:
         self._occupations.append(occupation)
 
     def list_occupations(self) -> list[Occupation]:
         return list(self._occupations)
+
+    def list_site_occupation_masters(self) -> list[SiteOccupationMaster]:
+        return [
+            SiteOccupationMaster(
+                site_id="fake",
+                job_category_code=f"category-{index}",
+                job_type_codes=(f"type-{index}",),
+                occupation=occupation,
+            )
+            for index, occupation in enumerate(self._occupations, start=1)
+        ]
 
     def add_job_for_condition(self, condition: CollectionCondition, job: Job) -> None:
         self._domain_jobs_by_condition.setdefault(condition.normalized_key, []).append(job)

@@ -24,6 +24,8 @@ def test_alembic_upgrade_creates_required_tables() -> None:
             "jobs",
             "regions",
             "occupations",
+            "site_region_masters",
+            "site_occupation_masters",
             "job_changes",
             "subscription_conditions",
             "collection_conditions",

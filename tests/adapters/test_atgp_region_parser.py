@@ -12,7 +12,19 @@ def test_parse_region_master_converts_atgp_links_to_regions() -> None:
     regions = parse_region_master(html)
 
     assert regions == [
-        AtgpRegionMaster(code="13", region=Region(prefecture="東京都")),
-        AtgpRegionMaster(code="14", region=Region(prefecture="神奈川県")),
-        AtgpRegionMaster(code="27", region=Region(prefecture="大阪府")),
+        AtgpRegionMaster(
+            prefecture_code="13",
+            city_code=None,
+            region=Region(prefecture="東京都"),
+        ),
+        AtgpRegionMaster(
+            prefecture_code="14",
+            city_code=None,
+            region=Region(prefecture="神奈川県"),
+        ),
+        AtgpRegionMaster(
+            prefecture_code="27",
+            city_code=None,
+            region=Region(prefecture="大阪府"),
+        ),
     ]

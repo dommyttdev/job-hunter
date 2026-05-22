@@ -25,16 +25,24 @@ class FakeMasterFetcher:
     def fetch_region_masters(self) -> list[AtgpRegionMaster]:
         self.region_calls += 1
         return [
-            AtgpRegionMaster(code="13", region=Region(prefecture="東京都")),
-            AtgpRegionMaster(code="13101", region=Region(prefecture="東京都", city="千代田区")),
+            AtgpRegionMaster(
+                prefecture_code="13",
+                city_code=None,
+                region=Region(prefecture="東京都"),
+            ),
+            AtgpRegionMaster(
+                prefecture_code="13",
+                city_code="13101",
+                region=Region(prefecture="東京都", city="千代田区"),
+            ),
         ]
 
     def fetch_occupation_masters(self) -> list[AtgpOccupationMaster]:
         self.occupation_calls += 1
         return [
             AtgpOccupationMaster(
-                category_code="b01001610000003000",
-                type_codes=("b01001630000002000",),
+                job_category_code="b01001610000003000",
+                job_type_codes=("b01001630000002000",),
                 occupation=Occupation(category="IT・エンジニア", detail="Webエンジニア"),
             )
         ]

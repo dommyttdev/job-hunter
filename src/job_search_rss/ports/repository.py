@@ -4,6 +4,7 @@ from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.history import CollectionRun, JobChange
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 
 
@@ -15,6 +16,18 @@ class Repository(Protocol):
     def save_occupation(self, occupation: Occupation) -> None: ...
 
     def list_occupations(self) -> list[Occupation]: ...
+
+    def save_site_region_master(self, master: SiteRegionMaster) -> None: ...
+
+    def list_site_region_masters(self, *, site_id: str | None = None) -> list[SiteRegionMaster]: ...
+
+    def save_site_occupation_master(self, master: SiteOccupationMaster) -> None: ...
+
+    def list_site_occupation_masters(
+        self,
+        *,
+        site_id: str | None = None,
+    ) -> list[SiteOccupationMaster]: ...
 
     def save_job(self, job: Job) -> None: ...
 

@@ -12,6 +12,7 @@ from job_search_rss.domain.history import (
     JobChangeType,
 )
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.ports.repository import Repository
 
@@ -48,6 +49,28 @@ class OccupationRecord(Base):
     normalized_key: Mapped[str] = mapped_column(String(512), primary_key=True)
     category: Mapped[str] = mapped_column(String(255), nullable=False)
     detail: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class SiteRegionMasterRecord(Base):
+    __tablename__ = "site_region_masters"
+
+    normalized_key: Mapped[str] = mapped_column(String(768), primary_key=True)
+    site_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    prefecture_code: Mapped[str | None] = mapped_column(String(255))
+    city_code: Mapped[str | None] = mapped_column(String(255))
+    region_prefecture: Mapped[str] = mapped_column(String(255), nullable=False)
+    region_city: Mapped[str | None] = mapped_column(String(255))
+
+
+class SiteOccupationMasterRecord(Base):
+    __tablename__ = "site_occupation_masters"
+
+    normalized_key: Mapped[str] = mapped_column(String(768), primary_key=True)
+    site_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    job_category_code: Mapped[str | None] = mapped_column(String(255))
+    job_type_codes: Mapped[str] = mapped_column(Text, nullable=False)
+    occupation_category: Mapped[str] = mapped_column(String(255), nullable=False)
+    occupation_detail: Mapped[str] = mapped_column(String(255), nullable=False)
 
 
 class JobChangeRecord(Base):
@@ -137,6 +160,40 @@ class SqlAlchemyRepository(Repository):
                 .all()
             )
             return [_occupation_from_record(record) for record in records]
+
+    def save_site_region_master(self, master: SiteRegionMaster) -> None:
+        with self._session_factory() as session:
+            session.merge(_site_region_master_record_from_domain(master))
+            session.commit()
+
+    def list_site_region_masters(
+        self,
+        *,
+        site_id: str | None = None,
+    ) -> list[SiteRegionMaster]:
+        with self._session_factory() as session:
+            query = session.query(SiteRegionMasterRecord)
+            if site_id is not None:
+                query = query.filter_by(site_id=site_id)
+            records = query.order_by(SiteRegionMasterRecord.normalized_key).all()
+            return [_site_region_master_from_record(record) for record in records]
+
+    def save_site_occupation_master(self, master: SiteOccupationMaster) -> None:
+        with self._session_factory() as session:
+            session.merge(_site_occupation_master_record_from_domain(master))
+            session.commit()
+
+    def list_site_occupation_masters(
+        self,
+        *,
+        site_id: str | None = None,
+    ) -> list[SiteOccupationMaster]:
+        with self._session_factory() as session:
+            query = session.query(SiteOccupationMasterRecord)
+            if site_id is not None:
+                query = query.filter_by(site_id=site_id)
+            records = query.order_by(SiteOccupationMasterRecord.normalized_key).all()
+            return [_site_occupation_master_from_record(record) for record in records]
 
     def save_job(self, job: Job) -> None:
         with self._session_factory() as session:
@@ -262,6 +319,60 @@ def _occupation_record_from_domain(occupation: Occupation) -> OccupationRecord:
 
 def _occupation_from_record(record: OccupationRecord) -> Occupation:
     return Occupation(category=record.category, detail=record.detail)
+
+
+def _site_region_master_record_from_domain(
+    master: SiteRegionMaster,
+) -> SiteRegionMasterRecord:
+    return SiteRegionMasterRecord(
+        normalized_key=master.normalized_key,
+        site_id=master.site_id,
+        prefecture_code=master.prefecture_code,
+        city_code=master.city_code,
+        region_prefecture=master.region.prefecture,
+        region_city=master.region.city,
+    )
+
+
+def _site_region_master_from_record(
+    record: SiteRegionMasterRecord,
+) -> SiteRegionMaster:
+    return SiteRegionMaster(
+        site_id=record.site_id,
+        prefecture_code=record.prefecture_code,
+        city_code=record.city_code,
+        region=Region(prefecture=record.region_prefecture, city=record.region_city),
+    )
+
+
+def _site_occupation_master_record_from_domain(
+    master: SiteOccupationMaster,
+) -> SiteOccupationMasterRecord:
+    return SiteOccupationMasterRecord(
+        normalized_key=master.normalized_key,
+        site_id=master.site_id,
+        job_category_code=master.job_category_code,
+        job_type_codes=",".join(master.job_type_codes),
+        occupation_category=master.occupation.category,
+        occupation_detail=master.occupation.detail,
+    )
+
+
+def _site_occupation_master_from_record(
+    record: SiteOccupationMasterRecord,
+) -> SiteOccupationMaster:
+    job_type_codes = tuple(
+        type_code for type_code in record.job_type_codes.split(",") if type_code
+    )
+    return SiteOccupationMaster(
+        site_id=record.site_id,
+        job_category_code=record.job_category_code,
+        job_type_codes=job_type_codes,
+        occupation=Occupation(
+            category=record.occupation_category,
+            detail=record.occupation_detail,
+        ),
+    )
 
 
 def _job_from_record(record: JobRecord) -> Job:

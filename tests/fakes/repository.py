@@ -2,6 +2,7 @@ from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.history import CollectionRun, JobChange
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.usecase.register_subscription_condition import Subscription
 from tests.fakes.site_adapter import FakeSiteAdapter
@@ -14,6 +15,8 @@ class FakeRepository:
         self._changes_by_subscription: dict[str, list[JobChangeData]] = {}
         self._regions: dict[str, Region] = {}
         self._occupations: dict[str, Occupation] = {}
+        self._site_region_masters: dict[str, SiteRegionMaster] = {}
+        self._site_occupation_masters: dict[str, SiteOccupationMaster] = {}
         self._jobs: list[Job] = []
         self._job_changes: list[JobChange] = []
         self._subscription_conditions: list[SubscriptionCondition] = []
@@ -66,6 +69,34 @@ class FakeRepository:
 
     def list_occupations(self) -> list[Occupation]:
         return list(self._occupations.values())
+
+    def save_site_region_master(self, master: SiteRegionMaster) -> None:
+        self._site_region_masters[master.normalized_key] = master
+
+    def list_site_region_masters(
+        self,
+        *,
+        site_id: str | None = None,
+    ) -> list[SiteRegionMaster]:
+        return [
+            master
+            for master in self._site_region_masters.values()
+            if site_id is None or master.site_id == site_id
+        ]
+
+    def save_site_occupation_master(self, master: SiteOccupationMaster) -> None:
+        self._site_occupation_masters[master.normalized_key] = master
+
+    def list_site_occupation_masters(
+        self,
+        *,
+        site_id: str | None = None,
+    ) -> list[SiteOccupationMaster]:
+        return [
+            master
+            for master in self._site_occupation_masters.values()
+            if site_id is None or master.site_id == site_id
+        ]
 
     def save_job(self, job: Job) -> None:
         self._jobs.append(job)

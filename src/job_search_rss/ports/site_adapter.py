@@ -3,6 +3,7 @@ from typing import Protocol
 from job_search_rss.domain.collection_condition import CollectionCondition
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 
 
 class SiteAdapter(Protocol):
@@ -13,6 +14,10 @@ class SiteAdapter(Protocol):
     def add_occupation(self, occupation: Occupation) -> None: ...
 
     def list_occupations(self) -> list[Occupation]: ...
+
+    def list_site_region_masters(self) -> list[SiteRegionMaster]: ...
+
+    def list_site_occupation_masters(self) -> list[SiteOccupationMaster]: ...
 
     def add_job_for_condition(self, condition: CollectionCondition, job: Job) -> None: ...
 
