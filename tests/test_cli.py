@@ -6,6 +6,9 @@ from job_search_rss.adapters.atgp import AtgpPlaywrightMasterFetcher, AtgpSiteAd
 from job_search_rss.cli import (
     RegisterSubscriptionInput,
     _create_site_adapter_from_settings,
+    list_occupations_command,
+    list_regions_command,
+    list_sites_command,
     main,
     register_subscription_command,
     run_collection_command,
@@ -13,6 +16,7 @@ from job_search_rss.cli import (
 )
 from job_search_rss.domain.condition_values import Occupation, Region
 from job_search_rss.domain.job import Job
+from job_search_rss.domain.site_master import SiteOccupationMaster, SiteRegionMaster
 from job_search_rss.domain.subscription_condition import SubscriptionCondition
 from job_search_rss.usecase.manage_collection_condition import ManageCollectionCondition
 from job_search_rss.usecase.register_subscription_condition import (
@@ -136,6 +140,82 @@ def test_main_syncs_site_master_from_argv(capsys: CaptureFixture[str]) -> None:
     output = capsys.readouterr().out
     assert "region_count=1" in output
     assert "occupation_count=0" in output
+
+
+def test_list_sites_command_includes_supported_site_without_http() -> None:
+    repository = FakeRepository()
+
+    result = list_sites_command(repository=repository)
+
+    assert result.items == ("atgp",)
+
+
+def test_list_regions_command_lists_prefectures_or_cities() -> None:
+    repository = FakeRepository()
+    repository.save_site_region_master(
+        SiteRegionMaster(
+            site_id="atgp",
+            prefecture_code="13",
+            city_code=None,
+            region=Region(prefecture="Tokyo"),
+        )
+    )
+    repository.save_site_region_master(
+        SiteRegionMaster(
+            site_id="atgp",
+            prefecture_code="13",
+            city_code="13113",
+            region=Region(prefecture="Tokyo", city="Shibuya"),
+        )
+    )
+
+    assert list_regions_command(repository=repository, site_id="atgp").items == ("Tokyo",)
+    assert list_regions_command(
+        repository=repository,
+        site_id="atgp",
+        prefecture="Tokyo",
+    ).items == ("Shibuya",)
+
+
+def test_list_occupations_command_lists_categories_or_details() -> None:
+    repository = FakeRepository()
+    repository.save_site_occupation_master(
+        SiteOccupationMaster(
+            site_id="atgp",
+            job_category_code="engineering",
+            job_type_codes=("backend",),
+            occupation=Occupation(category="Engineering", detail="Backend Engineer"),
+        )
+    )
+
+    assert list_occupations_command(repository=repository, site_id="atgp").items == (
+        "Engineering",
+    )
+    assert list_occupations_command(
+        repository=repository,
+        site_id="atgp",
+        category="Engineering",
+    ).items == ("Backend Engineer",)
+
+
+def test_main_lists_master_values_from_argv(capsys: CaptureFixture[str]) -> None:
+    repository = FakeRepository()
+    repository.save_site_region_master(
+        SiteRegionMaster(
+            site_id="atgp",
+            prefecture_code="13",
+            city_code="13113",
+            region=Region(prefecture="Tokyo", city="Shibuya"),
+        )
+    )
+
+    exit_code = main(
+        ["list-regions", "--site", "atgp", "--prefecture", "Tokyo"],
+        repository=repository,
+    )
+
+    assert exit_code == 0
+    assert capsys.readouterr().out == "Shibuya\n"
 
 
 def test_create_site_adapter_from_settings_uses_playwright_master_fetcher(

@@ -19,6 +19,7 @@ from job_search_rss.infrastructure.database import (
 from job_search_rss.infrastructure.settings import load_settings
 from job_search_rss.ports.repository import Repository
 from job_search_rss.ports.site_adapter import SiteAdapter
+from job_search_rss.usecase.list_site_master import ListSiteMaster
 from job_search_rss.usecase.manage_collection_condition import ManageCollectionCondition
 from job_search_rss.usecase.register_subscription_condition import (
     RegisterSubscriptionCondition,
@@ -55,6 +56,11 @@ class SyncSiteMasterCommandResult:
     occupation_count: int
     site_region_count: int
     site_occupation_count: int
+
+
+@dataclass(frozen=True)
+class ListMasterCommandResult:
+    items: tuple[str, ...]
 
 
 def register_subscription_command(
@@ -96,6 +102,38 @@ def sync_site_master_command(
         site_region_count=result.site_region_count,
         site_occupation_count=result.site_occupation_count,
     )
+
+
+def list_sites_command(*, repository: Repository) -> ListMasterCommandResult:
+    return ListMasterCommandResult(tuple(ListSiteMaster(repository).list_sites()))
+
+
+def list_regions_command(
+    *,
+    repository: Repository,
+    site_id: str,
+    prefecture: str | None = None,
+) -> ListMasterCommandResult:
+    usecase = ListSiteMaster(repository)
+    if prefecture is None:
+        items = usecase.list_prefectures(site_id=site_id)
+    else:
+        items = usecase.list_cities(site_id=site_id, prefecture=prefecture)
+    return ListMasterCommandResult(tuple(items))
+
+
+def list_occupations_command(
+    *,
+    repository: Repository,
+    site_id: str,
+    category: str | None = None,
+) -> ListMasterCommandResult:
+    usecase = ListSiteMaster(repository)
+    if category is None:
+        items = usecase.list_occupation_categories(site_id=site_id)
+    else:
+        items = usecase.list_occupation_details(site_id=site_id, category=category)
+    return ListMasterCommandResult(tuple(items))
 
 
 def main(
@@ -140,6 +178,26 @@ def main(
             print(f"site_region_count={result.site_region_count}")
             print(f"site_occupation_count={result.site_occupation_count}")
             return 0
+        case "list-sites":
+            result = list_sites_command(repository=command_repository)
+            _print_lines(result.items)
+            return 0
+        case "list-regions":
+            result = list_regions_command(
+                repository=command_repository,
+                site_id=args.site,
+                prefecture=args.prefecture,
+            )
+            _print_lines(result.items)
+            return 0
+        case "list-occupations":
+            result = list_occupations_command(
+                repository=command_repository,
+                site_id=args.site,
+                category=args.category,
+            )
+            _print_lines(result.items)
+            return 0
         case _:
             raise AssertionError(f"unsupported command: {args.command}")
 
@@ -155,8 +213,22 @@ def _build_parser() -> argparse.ArgumentParser:
     subscribe.add_argument("--occupation-detail")
     subparsers.add_parser("collect")
     subparsers.add_parser("sync-master")
+    subparsers.add_parser("list-sites")
+
+    list_regions = subparsers.add_parser("list-regions")
+    list_regions.add_argument("--site", required=True)
+    list_regions.add_argument("--prefecture")
+
+    list_occupations = subparsers.add_parser("list-occupations")
+    list_occupations.add_argument("--site", required=True)
+    list_occupations.add_argument("--category")
 
     return parser
+
+
+def _print_lines(items: tuple[str, ...]) -> None:
+    for item in items:
+        print(item)
 
 
 class HttpxPageClient:
