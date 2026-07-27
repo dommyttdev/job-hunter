@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | フロントエンド | Jinja2 | Flaskから配信するサーバーサイドHTMLテンプレート |
 | バックエンド | Python / Flask | HTTPルーティング、フォーム処理、アプリケーションサービス、CLIエントリーポイント |
-| 永続化 | SQLite / SQLAlchemy | 監視設定、求人、HTML版、イベント、作業、通知履歴 |
+| 永続化 | SQLite / SQLAlchemy | 監視設定、求人固有HTML版、イベント、作業、通知履歴 |
 
 ```mermaid
 flowchart LR

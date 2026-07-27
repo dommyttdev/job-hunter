@@ -4,7 +4,7 @@
 
 ## 文書
 
-- `sources.md` — 取得元ごとの提供形式、制約、取得頻度
+- [求人サイト別仕様](./sources/README.md) — 初期6サイトの個別URL、求人ID、一覧巡回、詳細判定
 - `compliance.md` — 利用規約、robots.txt、レート制限、個人情報への対応
 - `fetching-policy.md` — スケジュール、再試行、タイムアウト、障害時の扱い
 - `normalization.md` — 取得データから共通求人モデルへの変換規則
