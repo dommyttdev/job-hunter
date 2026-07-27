@@ -1,5 +1,9 @@
 # エージェント向けプロジェクトルール
 
+## コーディング
+
+[エージェント向けコーディング規約](./doc/development/coding-guidelines.md)に従ってください。
+
 ## Git 運用
 
 Git を操作する前に、[エージェント向け Git ブランチ運用ルール](./doc/development/git-workflow.md)を確認し、従ってください。

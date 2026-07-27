@@ -41,6 +41,7 @@ doc/
 │   └── README.md
 └── development/
     ├── README.md
+    ├── coding-guidelines.md
     └── git-workflow.md
 ```
 
