@@ -18,7 +18,7 @@ Google認証とLINE通知連携では、外部ID、認可目的、解除条件�
 - LINE連携要求を内部利用者、Webセッション、用途、state、nonce、有効期限に結び付け、1回だけ使用する。
 - LINE LoginチャネルとMessaging APIチャネルを同じLINE Provider配下に置く。
 - LINE公式アカウントの友だち追加済みを確認した場合だけ通知先を`ACTIVE`にする。
-- LINE通知をOFFまたは連携解除しても、Google認証、監視設定、求人履歴を維持する。
+- LINE通知をOFFまたは連携解除しても、Google認証、監視設定、利用者と求人の関連を維持する。
 - [0003 認証プロバイダーと通知チャネルを分離する](./0003-separate-authentication-and-notification.md)を置き換える。認証と通知を別ポート・別エンティティにする原則は継承する。
 
 ## 代替案

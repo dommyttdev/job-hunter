@@ -25,7 +25,9 @@ NNNN-short-title.md
 - [0001 求人サイト差異を明示的なアダプターで分離する](./0001-explicit-source-adapters.md)
 - [0002 Flask、Jinja2、SQLAlchemy、SQLiteを採用する](./0002-flask-jinja-sqlalchemy-sqlite.md)
 - [0003 認証プロバイダーと通知チャネルを分離する](./0003-separate-authentication-and-notification.md) — 0005により置換
-- [0004 検索一覧は新着発見に限定し求人固有コンテンツを保存する](./0004-search-discovery-and-job-content.md)
+- [0004 検索一覧は利用者向け発見に限定し求人固有コンテンツを保存する](./0004-search-discovery-and-job-content.md)
 - [0005 Google認証と任意のLINE通知連携を採用する](./0005-google-auth-line-notification-link.md)
+- [0006 求人状態イベントと利用者向け発見を分離する](./0006-separate-job-events-and-user-discovery.md)
+- [0007 求人履歴は変更検知と処理中通知に必要な範囲だけ保持する](./0007-retain-only-required-job-history.md)
 
 [アーキテクチャへ戻る](../README.md)
