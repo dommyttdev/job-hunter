@@ -4,6 +4,7 @@
 
 ## ドキュメント
 
+- [ドキュメントフォーマット](./documentation-formats/README.md) — 文書種別ごとの構成
 - [エージェント向けコーディング規約](./coding-guidelines.md) — 設計、実装、品質
 - [エージェント向け Git ブランチ運用ルール](./git-workflow.md) — ブランチ、コミット、マージ、安全な Git 操作
 

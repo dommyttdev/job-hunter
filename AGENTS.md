@@ -1,5 +1,9 @@
 # エージェント向けプロジェクトルール
 
+## ドキュメント
+
+[ドキュメントフォーマット](./doc/development/documentation-formats/README.md)に従ってください。
+
 ## コーディング
 
 [エージェント向けコーディング規約](./doc/development/coding-guidelines.md)に従ってください。
