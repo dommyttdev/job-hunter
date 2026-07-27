@@ -40,7 +40,8 @@ doc/
 ├── operations/
 │   └── README.md
 └── development/
-    └── README.md
+    ├── README.md
+    └── git-workflow.md
 ```
 
 詳細な文書は、設計や実装の進行に合わせて各分類へ追加します。未確定事項を事実として記載せず、決定が必要な項目は明示します。
