@@ -1,6 +1,7 @@
 # 0003 認証プロバイダーと通知チャネルを分離する
 
-- 状態: Accepted
+- 状態: Superseded
+- 置換先: [0005 Google認証と任意のLINE通知連携を採用する](./0005-google-auth-line-notification-link.md)
 
 ## 背景
 

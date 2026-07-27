@@ -1,54 +1,60 @@
 # Webバックエンド
 
 - 状態: Draft
-- 対象: Flaskによる認証、監視設定、求人閲覧、通知連携
+- 対象: FlaskによるGoogle認証、監視設定、求人閲覧、LINE通知連携
 
 ## 背景・制約
 
-初期ログイン方式と通知チャネルはLINEとする。将来ほかのログイン方式と通知チャネルを追加できるようにするが、認証と通知を同じインターフェースやDB行として扱わない。
+JobHunterの会員登録とログインにはGoogle OpenID Connectを使用する。LINE LoginをJobHunterへのログイン方式として使用しない。
 
-LINE Loginは利用者の認証、Messaging APIはLINE通知という別の役割を持つ。同じLINE Provider配下にLINE LoginチャネルとMessaging APIチャネルを作成すると、同じ利用者に同じLINE user IDが発行される。一方、LINEプッシュ通知には公式アカウントの友だち追加などの送信条件があるため、ログイン成功と通知可能状態を分けて管理する。
+LINEは利用者がLINE通知をONにした場合だけ連携する。Googleログイン済みの内部利用者とLINE user IDを安全に関連付け、LINE公式アカウントを友だち追加済みの場合に通知を有効化する。Google認証とLINE通知連携は、異なる目的、状態、解除条件を持つため別コンポーネント・別DBエンティティとして扱う。
 
 ## 全体構成
 
 ```mermaid
 flowchart LR
     Browser["ブラウザー"] --> Routes["Flask Blueprints"]
-    Routes --> AuthApp["認証サービス"]
+    Routes --> AuthApp["Google認証サービス"]
     Routes --> WatchApp["監視設定サービス"]
     Routes --> JobQuery["求人照会サービス"]
+    Routes --> LineLink["LINE通知連携サービス"]
     AuthApp --> AuthRegistry["AuthProvider Registry"]
-    AuthRegistry --> LineLogin["LINE Login Adapter"]
+    AuthRegistry --> GoogleOIDC["Google OIDC Adapter"]
+    LineLink --> LineLogin["LINE Notification Link Adapter"]
     WatchApp --> SourceRegistry["JobSourceAdapter Registry"]
     JobQuery --> Repository["SQLAlchemy Repository"]
     AuthApp --> Repository
     WatchApp --> Repository
-    LineWebhook["LINE Webhook"] --> NotificationLink["通知先連携サービス"]
+    LineLink --> Repository
+    LineWebhook["LINE Webhook"] --> LineLink
     NotificationWorker["通知ワーカー"] --> ChannelRegistry["NotificationChannel Registry"]
     ChannelRegistry --> LineMessage["LINE Messaging Adapter"]
-    NotificationLink --> Repository
     NotificationWorker --> Repository
 ```
 
-認証プロバイダー、通知チャネル、求人サイトアダプターはそれぞれ独立した型付きポートとし、composition rootで静的に登録する。
+`AuthenticationProvider`はJobHunterへログインする外部認証、`NotificationLinkProvider`は通知先の本人確認と関連付け、`NotificationChannel`はメッセージ送信を担当する。3つを独立した型付きポートとし、composition rootで静的に登録する。
 
 ## コンポーネントと責務
 
-### 認証
+### Google会員登録・ログイン
 
 `AuthenticationProvider`は次の責務を持つ。
 
 | 操作 | 責務 |
 | --- | --- |
-| `begin_authorization` | state、nonce、PKCEなどプロバイダーが必要とする認可要求を作成する。 |
-| `complete_authorization` | callbackを検証し、プロバイダー内subjectと許可されたプロフィールを返す。 |
-| `revoke` | 対応可能な場合に連携解除処理を行う。 |
+| `begin_authorization` | state、nonceを含むGoogle認可要求を作成する。 |
+| `complete_authorization` | authorization codeを交換し、ID tokenを検証してprovider内subjectと許可されたプロフィールを返す。 |
+| `revoke` | 対応可能な場合に認証連携解除処理を行う。 |
 
-共通認証サービスは`(provider_key, subject)`から`auth_identity`を検索し、利用者を特定または初回作成する。LINE固有トークンやプロフィール形式をroute、利用者、通知先テーブルへ漏らさない。
+GoogleではAuthorization Code Flowを使用し、state、nonce、redirect URI、ID tokenの署名、issuer、audience、有効期限を検証する。Google ID tokenの`sub`を`auth_identity.subject`とし、メールアドレスを利用者の同一性キーにしない。
 
-LINE LoginではAuthorization Code Flowを使用し、最低限state、nonce、redirect URI、ID tokenの署名・issuer・audience・有効期限を検証する。外部から渡された`next`は同一originの相対パスだけを許可する。認証一時値は短時間で失効し、1回だけ使用できるようにする。
+共通認証サービスは`(provider_key=google, subject)`から`auth_identity`を検索する。存在しなければ利用規約等への同意確認後に`user`と`auth_identity`を同じトランザクションで作成し、存在すれば`last_login_at`を更新する。
+
+外部から渡された`next`は同一originの相対パスだけを許可する。認証一時値は短時間で失効し、1回だけ使用できるようにする。
 
 ログインセッションには内部`user_id`とセッション識別子だけを関連付ける。cookieには`Secure`、`HttpOnly`、適切な`SameSite`、有効期限を設定し、ログアウトと認証情報失効時にサーバー側セッションを無効化できる構成とする。
+
+LINE Login callbackから`user`や`auth_identity`を作成してはならない。
 
 ### 監視設定
 
@@ -68,13 +74,34 @@ LINE LoginではAuthorization Code Flowを使用し、最低限state、nonce、r
 
 一覧用view modelには変更種別、要約見出し、サイト名、掲載状態、検知日時を含める。詳細用view modelには求人ID、詳細URL、現在の要約、変更履歴、最終確認日時を含める。保存HTMLは返さない。
 
-### LINE通知連携
+### LINE通知のON
 
-認証プロバイダーと通知チャネルの対応は`DefaultNotificationProvisioner`の静的マップで定義する。初期値は`line_login -> line_messaging`とする。
+LINE通知連携はGoogleログイン済み利用者が明示的にONを選んだ場合だけ開始する。
 
-LINE LoginチャネルとMessaging APIチャネルは同じLINE Provider配下に作成する。ログインで得たsubjectをLINE通知先候補として保存し、友だち状態を確認できた場合だけ`ACTIVE`にする。通知不可の場合もログインは成功させ、通知先を`ACTION_REQUIRED`として画面へ表示する。
+1. CSRF検証済みのPOSTで`notification_link_intent`を作成する。
+2. intentを内部`user_id`、現在の`web_session`、用途`ENABLE_LINE_NOTIFICATION`、推測不能なstate、nonce、有効期限に結び付ける。
+3. LINE LoginのAuthorization Code Flowへリダイレクトする。このLINE Loginは通知先の本人確認専用であり、JobHunterへのログインではない。
+4. LINE callbackでstate、nonce、ID tokenを検証し、intentの利用者と現在のGoogleログインセッションが一致することを確認する。
+5. LINEのsubjectを`notification_destination.external_recipient_id`として関連付ける。
+6. 友だち状態を確認し、友だち追加済みなら`ACTIVE`、未追加またはブロック中なら`ACTION_REQUIRED`にする。
 
-LINE webhookはFlaskの専用endpointで受信し、署名を検証してから非同期作業として保存する。`follow`または利用可能状態の確認で通知先を`ACTIVE`、`unfollow`で`BLOCKED`にする。webhook event IDを一意に保存して再配信を重複処理しない。
+LINE LoginチャネルとMessaging APIチャネルは同じLINE Provider配下に作成する。同じProvider配下では同じ利用者に同じLINE user IDが発行されるため、LINE Loginで確認したsubjectをMessaging APIの通知先として使用できる。
+
+LINE Loginのadd friend optionを設定して認可中に友だち追加を促す。callback後も友だち状態が未完了なら、LINE公式アカウントの友だち追加導線を画面へ表示する。友だち追加は通知を有効化する条件であり、JobHunterへのログイン条件ではない。
+
+同じLINE通知先を複数の内部利用者へ関連付けない。既に別利用者へ関連付いているsubjectでの連携は拒否し、既存の関連を上書きしない。
+
+### LINE通知のOFF
+
+Googleログイン済み利用者がOFFを選んだ場合、対象`notification_destination`を`DISABLED`にして新規配信を停止する。Googleの`auth_identity`と`web_session`は変更しない。
+
+LINE公式アカウントの友だち解除は利用者がLINE側で行う。再度ONにする場合は、新しい`notification_link_intent`からLINE本人確認と友だち状態確認をやり直す。
+
+### LINE webhook
+
+LINE webhookはFlaskの専用endpointで受信し、リクエスト生bodyの署名を検証してから非同期作業として保存する。`follow`で該当通知先を`ACTIVE`、`unfollow`で`BLOCKED`にする。webhook event IDを一意に保存して再配信を重複処理しない。
+
+webhookのLINE user IDだけからJobHunter利用者を新規作成しない。既存の`notification_destination`に一致する場合だけ状態を更新する。
 
 ### 通知
 
@@ -86,9 +113,9 @@ LINE webhookはFlaskの専用endpointで受信し、署名を検証してから�
 
 | Method | Path | 認証 | 用途 |
 | --- | --- | --- | --- |
-| GET | `/login` | 不要 | ログイン画面 |
-| GET | `/auth/line/start` | 不要 | LINE認可開始 |
-| GET | `/auth/line/callback` | 不要 | LINE callback検証 |
+| GET | `/login` | 不要 | Googleログイン・会員登録画面 |
+| GET | `/auth/google/start` | 不要 | Google認可開始 |
+| GET | `/auth/google/callback` | 不要 | Google callback検証、会員登録またはログイン |
 | POST | `/logout` | 必要 | セッション無効化 |
 | GET | `/` | 必要 | ダッシュボード |
 | GET | `/watches` | 必要 | 監視対象一覧 |
@@ -97,54 +124,78 @@ LINE webhookはFlaskの専用endpointで受信し、署名を検証してから�
 | POST | `/watches/{watch_id}/stop` | 必要 | 監視停止 |
 | GET | `/jobs` | 必要 | 利用者の求人一覧 |
 | GET | `/jobs/{job_id}` | 必要 | 利用者の求人詳細 |
+| POST | `/notifications/line/enable` | 必要 | LINE通知連携開始 |
+| GET | `/notification-links/line/callback` | 必要 | LINE通知連携callback |
+| POST | `/notifications/line/disable` | 必要 | LINE通知をOFF |
 | POST | `/webhooks/line` | LINE署名 | Messaging API webhook |
 
-ブラウザーからの状態変更はCSRF tokenを必須とする。LINE webhookにはブラウザー用CSRFを適用せず、リクエスト生bodyに対するLINE署名検証を必須とする。
+ブラウザーからの状態変更はCSRF tokenを必須とする。GoogleとLINEのcallbackでは各フローのstateとnonceを検証する。LINE webhookにはブラウザー用CSRFを適用せず、リクエスト生bodyに対するLINE署名検証を必須とする。
 
 ## データフロー
+
+### Google会員登録・ログイン
 
 ```mermaid
 sequenceDiagram
     participant U as 利用者
     participant F as Flask
-    participant L as LINE Login
+    participant G as Google OIDC
     participant D as Database
-    participant M as LINE Messaging
-    U->>F: LINEログイン開始
-    F->>L: state・nonce付き認可要求
-    L-->>F: authorization code
-    F->>L: code交換・ID token検証
-    F->>D: User・AuthIdentity・Sessionを確定
-    F->>M: 友だち状態確認
-    F->>D: NotificationDestination状態を保存
+    U->>F: Googleで続行
+    F->>G: state・nonce付き認可要求
+    G-->>F: authorization code
+    F->>G: code交換・ID token検証
+    F->>D: User・Google AuthIdentity・Sessionを確定
     F-->>U: ダッシュボード
 ```
 
-友だち状態確認やMessaging API障害はログイン結果をロールバックしない。通知先状態の確認は再試行可能な別作業として扱えるようにする。
+### LINE通知のON
+
+```mermaid
+sequenceDiagram
+    participant U as Googleログイン済み利用者
+    participant F as Flask
+    participant L as LINE Login
+    participant D as Database
+    U->>F: LINE通知をON
+    F->>D: 利用者・sessionに紐づくlink intentを作成
+    F->>L: state・nonce・友だち追加option付き認可要求
+    L-->>F: authorization code
+    F->>L: code交換・LINE ID token検証
+    F->>D: intent所有者を再確認し通知先候補を保存
+    F->>L: 友だち状態確認
+    F->>D: ACTIVEまたはACTION_REQUIRED
+    F-->>U: 通知状態画面
+```
+
+LINE側障害はGoogleログインセッションへ影響させない。友だち状態確認に失敗した場合は通知先を有効化せず、再試行可能な状態で残す。
 
 ## 品質特性
 
 | 特性 | 方針 |
 | --- | --- |
-| 拡張性 | 新しいログインは`AuthenticationProvider`、新しい通知先は`NotificationChannel`と必要な連携方針を追加する。 |
-| 認可 | repository呼び出しまでに`user_id`を必須化し、監視対象との所有関係をSQL条件に含める。 |
-| セキュリティ | OAuth/OIDC検証、CSRF、session fixation対策、LINE webhook署名検証、secretのログ抑止を行う。 |
-| 可用性 | 認証成功と通知先確認を分離し、通知サービス障害でログイン不能にしない。 |
-| 監査性 | ログイン成功・失敗、監視設定変更、通知先状態変更を個人情報やtokenなしで記録する。 |
+| 拡張性 | 新しい会員ログインは`AuthenticationProvider`、新しい通知連携は`NotificationLinkProvider`、新しい送信先は`NotificationChannel`へ追加する。 |
+| 認可 | repository呼び出しまでに`user_id`を必須化し、監視対象・通知先との所有関係をSQL条件に含める。 |
+| セキュリティ | Google OIDC検証、LINE連携intent、CSRF、session fixation対策、LINE webhook署名検証、secretのログ抑止を行う。 |
+| 可用性 | Google認証とLINE通知連携を分離し、LINE障害や未連携でログイン不能にしない。 |
+| 監査性 | ログイン成功・失敗、LINE通知のON・OFF、通知先状態変更をtokenなしで記録する。 |
 
 ## 関連ADR
 
-- [0003 認証プロバイダーと通知チャネルを分離する](./adr/0003-separate-authentication-and-notification.md)
+- [0005 Google認証と任意のLINE通知連携を採用する](./adr/0005-google-auth-line-notification-link.md)
 
 ## 未決事項
 
-- LINEプロフィールから保存する表示名・画像の範囲
+- Googleプロフィールから保存する表示名・画像の範囲
 - セッション識別子の生成・ハッシュ保存方式と有効期限
-- LINE公式アカウントの友だち追加をログイン画面内で促す方式
-- 将来追加するログイン方式と、その方式に対応する既定通知チャネル
+- LINE通知連携の有効期限と再認証条件
+- LINE公式アカウントの友だち追加をadd friend option以外にも表示するか
+- 将来追加する会員ログイン方式
 
 ## 関連資料
 
+- [Google OpenID Connect API](https://developers.google.com/identity/openid-connect/reference)
 - [LINE user IDの発行単位](https://developers.line.biz/en/docs/messaging-api/getting-user-ids/)
-- [LINE Messaging APIのpush message送信条件](https://developers.line.biz/en/reference/messaging-api/)
+- [LINE Loginの友だち状態API](https://developers.line.biz/en/reference/line-login/)
+- [LINE公式アカウントの友だち追加](https://developers.line.biz/en/docs/messaging-api/sharing-bot/)
 - [LINE webhookの受信と署名検証](https://developers.line.biz/en/docs/messaging-api/receiving-messages/)

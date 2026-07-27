@@ -7,7 +7,7 @@
 - `vision-and-scope.md` — 背景、目的、対象範囲、対象外
 - `use-cases.md` — 利用者と主要な利用シナリオ
 - [求人変更監視の要件](./requirements.md) — 機能要件、非機能要件、受入条件
-- [求人監視Web UI](./web-ui.md) — LINEログイン、監視設定、求人閲覧、通知状態の画面設計
+- [求人監視Web UI](./web-ui.md) — Googleログイン、監視設定、求人閲覧、LINE通知連携の画面設計
 - `glossary.md` — 求人、取得、更新、削除などの用語定義
 
 [ドキュメント一覧へ戻る](../README.md)
