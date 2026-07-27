@@ -20,4 +20,10 @@ NNNN-short-title.md
 
 採用済みの判断を変更するときは元の記録を消さず、新しい ADR から置き換える ADR を参照します。
 
+## 記録
+
+- [0001 求人サイト差異を明示的なアダプターで分離する](./0001-explicit-source-adapters.md)
+- [0002 Flask、Jinja2、SQLAlchemy、SQLiteを採用する](./0002-flask-jinja-sqlalchemy-sqlite.md)
+- [0003 認証プロバイダーと通知チャネルを分離する](./0003-separate-authentication-and-notification.md)
+
 [アーキテクチャへ戻る](../README.md)
