@@ -4,11 +4,12 @@ JobHunterの要件と設計を、段階、実装順序、着手可能な作業�
 
 ## 現行段階
 
-- MVP: 計画準備中
+- [MVP](./stages/mvp/README.md): Current
 
 ## 文書一覧
 
 - [段階別計画](./stages/README.md) — 現行段階と完了済み段階の索引
+- [製品ロードマップ](./roadmap.md) — 段階間の目的と移行条件
 
 ## 運用ルール
 
