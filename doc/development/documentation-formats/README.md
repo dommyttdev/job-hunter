@@ -14,6 +14,7 @@
 - [API](./api.md)
 - [イベント](./event.md)
 - [データスキーマ](./data-schema.md)
+- [計画](./planning.md)
 
 ## 共通規則
 

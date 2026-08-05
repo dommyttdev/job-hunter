@@ -18,6 +18,7 @@
 | [変更検知](./change-detection/README.md) | 求人の同一性判定、重複排除、発見・更新・削除の判定ルール |
 | [通知](./notification/README.md) | 通知チャネル、通知条件、抑制、再送、メッセージ形式 |
 | [運用](./operations/README.md) | 設定、監視、障害対応、セキュリティ、データ保持 |
+| [計画](./planning/README.md) | 製品段階、実装優先順位、バックログ |
 | [開発](./development/README.md) | 開発環境、テスト方針、リリース手順、コーディング上の約束 |
 
 ## ディレクトリ構成
@@ -39,6 +40,10 @@ doc/
 │   └── README.md
 ├── operations/
 │   └── README.md
+├── planning/
+│   ├── README.md
+│   └── stages/
+│       └── README.md
 └── development/
     ├── README.md
     ├── coding-guidelines.md
