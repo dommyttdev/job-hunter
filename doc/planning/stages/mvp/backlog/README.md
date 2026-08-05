@@ -24,14 +24,14 @@ MVPを実装する親カードのID、概要、永続状態、依存、根拠を
 
 | ID | 概要 | 永続状態 | 依存 | 主な根拠 |
 | --- | --- | --- | --- | --- |
-| `MVP-FOUND-001` | アプリ、DB、永続作業キュー、テストの実行基盤 | `Ready` | なし | [技術スタック](../../../../architecture/technology-stack.md)、[システム設計](../../../../architecture/system-design.md) |
-| `MVP-SOURCE-001` | サイトアダプターによる検索・詳細取得と保存 | `Planned` | `MVP-FOUND-001` | [サイトアダプター](../../../../data-acquisition/source-adapters.md)、[取得元](../../../../data-acquisition/sources/README.md) |
-| `MVP-DETECT-001` | 基準化と求人状態イベントの変更検知 | `Planned` | `MVP-FOUND-001`, `MVP-SOURCE-001` | [変更判定ルール](../../../../change-detection/change-rules.md)、[データモデル](../../../../architecture/data-model.md) |
-| `MVP-SUMMARY-001` | 現在要約・変更要約と制限時フォールバック | `Planned` | `MVP-DETECT-001` | [システム設計](../../../../architecture/system-design.md)、[要件](../../../../product/requirements.md) |
-| `MVP-AUTH-001` | Google認証、セッション、所有権、アカウント削除 | `Planned` | `MVP-FOUND-001` | [Webバックエンド](../../../../architecture/web-backend.md)、[ADR 0003](../../../../architecture/adr/0003-separate-authentication-and-notification.md) |
-| `MVP-WEB-001` | 監視設定管理と現在求人のWeb画面 | `Planned` | `MVP-AUTH-001`, `MVP-SOURCE-001`, `MVP-DETECT-001`, `MVP-SUMMARY-001` | [Web UI](../../../../product/web-ui.md)、[Webバックエンド](../../../../architecture/web-backend.md) |
-| `MVP-NOTIFY-001` | LINE連携と通常・遅延ダイジェスト | `Planned` | `MVP-AUTH-001`, `MVP-DETECT-001`, `MVP-SUMMARY-001` | [求人変更通知](../../../../notification/job-change-notifications.md)、[ADR 0005](../../../../architecture/adr/0005-google-auth-line-notification-link.md) |
-| `MVP-OPS-001` | 観測、安全停止、復旧、MVP縦断検証 | `Planned` | 先行7カード | [運用](../../../../operations/README.md)、[MVP機能範囲](../scope.md) |
+| [MVP-FOUND-001](./mvp-found-001/README.md) | アプリ、DB、永続作業キュー、テストの実行基盤 | `Ready` | なし | [技術スタック](../../../../architecture/technology-stack.md)、[システム設計](../../../../architecture/system-design.md) |
+| [MVP-SOURCE-001](./mvp-source-001/README.md) | サイトアダプターによる検索・詳細取得と保存 | `Planned` | `MVP-FOUND-001` | [サイトアダプター](../../../../data-acquisition/source-adapters.md)、[取得元](../../../../data-acquisition/sources/README.md) |
+| [MVP-DETECT-001](./mvp-detect-001/README.md) | 基準化と求人状態イベントの変更検知 | `Planned` | `MVP-FOUND-001`, `MVP-SOURCE-001` | [変更判定ルール](../../../../change-detection/change-rules.md)、[データモデル](../../../../architecture/data-model.md) |
+| [MVP-SUMMARY-001](./mvp-summary-001/README.md) | 現在要約・変更要約と制限時フォールバック | `Planned` | `MVP-DETECT-001` | [システム設計](../../../../architecture/system-design.md)、[要件](../../../../product/requirements.md) |
+| [MVP-AUTH-001](./mvp-auth-001/README.md) | Google認証、セッション、所有権、アカウント削除 | `Planned` | `MVP-FOUND-001` | [Webバックエンド](../../../../architecture/web-backend.md)、[ADR 0003](../../../../architecture/adr/0003-separate-authentication-and-notification.md) |
+| [MVP-WEB-001](./mvp-web-001/README.md) | 監視設定管理と現在求人のWeb画面 | `Planned` | `MVP-AUTH-001`, `MVP-SOURCE-001`, `MVP-DETECT-001`, `MVP-SUMMARY-001` | [Web UI](../../../../product/web-ui.md)、[Webバックエンド](../../../../architecture/web-backend.md) |
+| [MVP-NOTIFY-001](./mvp-notify-001/README.md) | LINE連携と通常・遅延ダイジェスト | `Planned` | `MVP-AUTH-001`, `MVP-DETECT-001`, `MVP-SUMMARY-001` | [求人変更通知](../../../../notification/job-change-notifications.md)、[ADR 0005](../../../../architecture/adr/0005-google-auth-line-notification-link.md) |
+| [MVP-OPS-001](./mvp-ops-001/README.md) | 観測、安全停止、復旧、MVP縦断検証 | `Planned` | 先行7カード | [運用](../../../../operations/README.md)、[MVP機能範囲](../scope.md) |
 
 ## 共通Accepted条件
 
