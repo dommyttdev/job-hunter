@@ -52,7 +52,14 @@
 
 ## サブタスク構成
 
-本カードは、プロジェクト骨格、アプリ構成、永続化・作業キュー、統合検証へ分割する。各サブタスクは本カードが`Ready`の間に個別文書として追加する。
+| 順序 | サブタスク | 依存 | 独立した成果 |
+| --- | --- | --- | --- |
+| 1 | [ST01 Pythonプロジェクト骨格](./mvp-found-001-st01-project-tooling.md) | なし | 依存管理、パッケージ、品質コマンド |
+| 2 | [ST02 アプリ構成と設定境界](./mvp-found-001-st02-app-composition.md) | ST01 | application factory、設定、明示的DI |
+| 3 | [ST03 SQLite永続化と作業キュー](./mvp-found-001-st03-persistence-work-queue.md) | ST01、ST02 | マイグレーション、DB接続、永続作業 |
+| 4 | [ST04 基盤の縦断検証](./mvp-found-001-st04-foundation-verification.md) | ST01、ST02、ST03 | 再現確認、証拠、親カード状態更新 |
+
+各サブタスクは順番に独立コミットする。ST04で全条件を満たすまで親カードを`Accepted`へ変更しない。
 
 ## 根拠文書
 
