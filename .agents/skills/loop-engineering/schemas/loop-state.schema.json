@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jobhunter.local/schemas/loop-state.schema.json",
+  "title": "Loop engineering spine",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "status",
+    "iteration",
+    "max_iterations",
+    "baseline_commit",
+    "unmet_acceptance_conditions",
+    "last_failure_fingerprint",
+    "same_failure_count",
+    "last_verified_evidence",
+    "rejected_approaches",
+    "next_action"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "READY",
+        "CONTEXT",
+        "IMPLEMENTING",
+        "VERIFYING",
+        "RETRY",
+        "ACCEPTED",
+        "BLOCKED",
+        "HUMAN_GATE",
+        "BUDGET_EXHAUSTED"
+      ]
+    },
+    "iteration": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_iterations": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "baseline_commit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unmet_acceptance_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "last_failure_fingerprint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "same_failure_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "last_verified_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "rejected_approaches": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "next_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

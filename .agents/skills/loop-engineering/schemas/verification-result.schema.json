@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jobhunter.local/schemas/verification-result.schema.json",
+  "title": "Loop engineering checker result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "iteration",
+    "verdict",
+    "acceptance_checks",
+    "findings",
+    "failure_fingerprint",
+    "next_delta",
+    "human_gate_reason"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "iteration": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "verdict": {
+      "enum": [
+        "PASS",
+        "RETRY",
+        "BLOCKED"
+      ]
+    },
+    "acceptance_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "result",
+          "evidence_ref"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "enum": [
+              "PASS",
+              "FAIL"
+            ]
+          },
+          "evidence_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "summary",
+          "evidence_ref"
+        ],
+        "properties": {
+          "severity": {
+            "enum": [
+              "Critical",
+              "Major",
+              "Minor"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "failure_fingerprint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_delta": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "human_gate_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

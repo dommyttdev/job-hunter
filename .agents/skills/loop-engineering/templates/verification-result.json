@@ -1,0 +1,22 @@
+{
+  "task_id": "MVP-FOUND-001-ST01",
+  "iteration": 1,
+  "verdict": "RETRY",
+  "acceptance_checks": [
+    {
+      "id": "AC-01",
+      "result": "FAIL",
+      "evidence_ref": "evidence/iteration-1/test-output.txt"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "Major",
+      "summary": "The required verification command still fails.",
+      "evidence_ref": "evidence/iteration-1/test-output.txt"
+    }
+  ],
+  "failure_fingerprint": "pytest:test_project_tooling:AssertionError",
+  "next_delta": "Correct the project tooling configuration without changing the acceptance check.",
+  "human_gate_reason": null
+}

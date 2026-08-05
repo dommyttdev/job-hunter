@@ -1,0 +1,15 @@
+{
+  "task_id": "MVP-FOUND-001-ST01",
+  "status": "READY",
+  "iteration": 0,
+  "max_iterations": 5,
+  "baseline_commit": "<git-sha>",
+  "unmet_acceptance_conditions": [
+    "AC-01"
+  ],
+  "last_failure_fingerprint": null,
+  "same_failure_count": 0,
+  "last_verified_evidence": [],
+  "rejected_approaches": [],
+  "next_action": "Build the first iteration packet"
+}
